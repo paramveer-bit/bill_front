@@ -26,7 +26,6 @@ import { Plus, Search, Pencil, Trash2, Mail, Phone } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import axios, { AxiosError } from "axios";
-import { toast } from "sonner";
 import { showErrorToast } from "@/lib/helpers";
 type Customer = {
   id: number;
