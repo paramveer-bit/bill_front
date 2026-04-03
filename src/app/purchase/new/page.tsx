@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,9 +27,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import axios, { AxiosError } from "axios";
 import { showErrorToast } from "@/lib/helpers";
-
+import { showSuccessToast } from "@/lib/helpers";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -172,6 +187,7 @@ function BatchRowItem({
   index,
   products,
   canRemove,
+  focusOnMount,
   onChange,
   onRemove,
 }: {
@@ -179,6 +195,7 @@ function BatchRowItem({
   index: number;
   products: Product[];
   canRemove: boolean;
+  focusOnMount: boolean;
   onChange: (index: number, updated: BatchRow) => void;
   onRemove: (index: number) => void;
 }) {
@@ -189,11 +206,24 @@ function BatchRowItem({
   const lineTotal =
     (parseFloat(batch.qtyInput) || 0) * (parseFloat(batch.unitCost) || 0);
 
+  // Searchable product combobox
+  const [productOpen, setProductOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Auto-open when row is newly added
+  useEffect(() => {
+    if (focusOnMount) {
+      const t = setTimeout(() => triggerRef.current?.click(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [focusOnMount]);
+
   const handleProductChange = (productId: string) => {
     const p = products.find((pr) => pr.id === productId);
     const convs = p ? sortedConversions(p.unitConversions) : [];
     const defaultUnit = convs[0]?.unitName ?? p?.baseUnit ?? "";
     const defaultConvQty = getConvQty(defaultUnit, convs);
+    setProductOpen(false);
     onChange(index, {
       ...batch,
       productId,
@@ -242,7 +272,6 @@ function BatchRowItem({
     });
   };
 
-  // Per-field base unit hint text
   const baseHint = (priceStr: string) => {
     if (!priceStr || isBaseUnit) return null;
     const base = toBasePrice(priceStr, batch.selectedUnit, conversions);
@@ -251,31 +280,66 @@ function BatchRowItem({
   };
 
   const selectedUnitLabel = batch.selectedUnit || product?.baseUnit || "unit";
-  const hasAnyValue = batch.productId !== "";
 
   return (
     <>
       {/* ── Main input row ── */}
       <TableRow className="h-10 align-middle border-b-0">
-        {/* Product */}
+        {/* Product — searchable combobox */}
         <TableCell className="w-[200px] py-1 align-middle">
-          <Select value={batch.productId} onValueChange={handleProductChange}>
-            <SelectTrigger className="h-8 text-sm">
-              <SelectValue placeholder="Select product" />
-            </SelectTrigger>
-            <SelectContent>
-              {products.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  <span>{p.name}</span>
-                  {p.sku && (
-                    <span className="ml-1 text-xs text-muted-foreground font-mono">
-                      ({p.sku})
-                    </span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={productOpen} onOpenChange={setProductOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                ref={triggerRef}
+                variant="outline"
+                role="combobox"
+                aria-expanded={productOpen}
+                className="h-8 w-full justify-between text-sm font-normal px-2"
+              >
+                <span className="truncate text-left">
+                  {product ? product.name : "Select product…"}
+                </span>
+                <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[260px] p-0" align="start">
+              <Command>
+                <CommandInput
+                  placeholder="Search by name or SKU…"
+                  className="h-8"
+                />
+                <CommandList>
+                  <CommandEmpty>No product found.</CommandEmpty>
+                  <CommandGroup>
+                    {products.map((p) => (
+                      <CommandItem
+                        key={p.id}
+                        value={`${p.name} ${p.sku ?? ""}`}
+                        onSelect={() => handleProductChange(p.id)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-3.5 w-3.5 shrink-0",
+                            batch.productId === p.id
+                              ? "opacity-100"
+                              : "opacity-0",
+                          )}
+                        />
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate">{p.name}</span>
+                          {p.sku && (
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {p.sku}
+                            </span>
+                          )}
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </TableCell>
 
         {/* Qty + Unit */}
@@ -490,6 +554,7 @@ export default function NewPurchasePage() {
   });
 
   const [batches, setBatches] = useState<BatchRow[]>([emptyBatch()]);
+  const [newestIndex, setNewestIndex] = useState<number | null>(null);
 
   // ── fetch ────────────────────────────────────────────────────────────────────
 
@@ -518,7 +583,13 @@ export default function NewPurchasePage() {
   const handleBatchChange = (index: number, updated: BatchRow) =>
     setBatches((prev) => prev.map((b, i) => (i === index ? updated : b)));
 
-  const handleAddBatch = () => setBatches((prev) => [...prev, emptyBatch()]);
+  const handleAddBatch = () => {
+    setBatches((prev) => {
+      const next = [...prev, emptyBatch()];
+      setNewestIndex(next.length - 1);
+      return next;
+    });
+  };
 
   const handleRemoveBatch = (index: number) =>
     setBatches((prev) => prev.filter((_, i) => i !== index));
@@ -539,7 +610,6 @@ export default function NewPurchasePage() {
 
   const isValid =
     !!formData.supplierId &&
-    !!formData.invoiceNo.trim() &&
     !!formData.purchaseDate &&
     batches.length > 0 &&
     batches.every(
@@ -547,8 +617,8 @@ export default function NewPurchasePage() {
         b.productId &&
         b.qtyReceivedBase > 0 &&
         parseFloat(b.unitCost) > 0 &&
-        parseFloat(b.sellingPrice) > 0 && // added
-        parseFloat(b.mrp) > 0, // added
+        parseFloat(b.sellingPrice) > 0 &&
+        parseFloat(b.mrp) > 0,
     );
 
   // ── submit — convert all prices to base unit before sending ──────────────────
@@ -586,9 +656,10 @@ export default function NewPurchasePage() {
           };
         }),
       };
-      console.log("Payload to save:", payload);
+
       await axios.post(`${BASE}/purchases`, payload);
       router.push("/purchase");
+      showSuccessToast("Purchase saved successfully");
     } catch (err) {
       const error = err as AxiosError<any>;
       showErrorToast(
@@ -767,7 +838,12 @@ export default function NewPurchasePage() {
                               index={index}
                               products={products}
                               canRemove={batches.length > 1}
-                              onChange={handleBatchChange}
+                              focusOnMount={index === newestIndex}
+                              onChange={(i, updated) => {
+                                handleBatchChange(i, updated);
+                                // Clear newestIndex after first interaction
+                                if (i === newestIndex) setNewestIndex(null);
+                              }}
                               onRemove={handleRemoveBatch}
                             />
                           ))}
