@@ -1,7 +1,7 @@
 import { ReceiptText, TrendingUp, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fmt } from "@/lib/helpers/functions";
-import { Summary } from "@/lib/types";
+import { purchaseSummary } from "@/lib/types";
 
 function fmtCompact(amount: number) {
   if (amount >= 1_00_00_000) return `₹${(amount / 1_00_00_000).toFixed(2)}Cr`;
@@ -20,9 +20,9 @@ function StatCard({ label, amount, count, icon: Icon, accent }: any) {
             {label}
           </p>
           <p className="text-2xl font-bold tabular-nums leading-tight">
-            {fmtCompact(amount)}
+            {amount}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">{count} invoices</p>
+          {/* <p className="text-xs text-muted-foreground mt-1">{count} invoices</p> */}
         </div>
         <div
           className={cn(
@@ -37,27 +37,33 @@ function StatCard({ label, amount, count, icon: Icon, accent }: any) {
   );
 }
 
-export function SaleStatCards({ summary }: { summary: Summary | null }) {
+export function SaleStatCards({
+  summary,
+  option,
+}: {
+  summary: purchaseSummary | null;
+  option: string;
+}) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <StatCard
-        label="Today"
-        amount={summary?.today.amount ?? 0}
-        count={summary?.today.count ?? 0}
+        label={option === "sale" ? "Sales" : "Purchases"}
+        amount={summary?.purchases ?? 0}
+        // count={summary?.today.count ?? 0}
         icon={ReceiptText}
         accent="bg-blue-500"
       />
       <StatCard
-        label="This Month"
-        amount={summary?.month.amount ?? 0}
-        count={summary?.month.count ?? 0}
+        label="Total Amount"
+        amount={`${fmt(summary?.spend || 0)}`}
+        // count={summary?.month.count ?? 0}
         icon={TrendingUp}
         accent="bg-emerald-500"
       />
       <StatCard
-        label="All Time"
-        amount={summary?.allTime.amount ?? 0}
-        count={summary?.allTime.count ?? 0}
+        label="Line Items"
+        amount={summary?.totalLine ?? 0}
+        // count={summary?.allTime.count ?? 0}
         icon={ShoppingBag}
         accent="bg-violet-500"
       />

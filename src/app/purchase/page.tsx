@@ -46,6 +46,7 @@ import { DataTableFilters } from "@/components/Filters"; // Using the new centra
 import View from "@/components/purchase/View";
 import { fmt, fmtDate } from "@/lib/helpers/functions";
 import { PurchaseListItem, PurchaseDetail, Meta } from "@/lib/types";
+import { SaleStatCards } from "@/components/sales/SaleStatCards";
 
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const PAGE_SIZE = 20;
@@ -180,46 +181,14 @@ export default function PurchasePage() {
 
           {/* Summary strip */}
           {!loading && meta && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {[
-                {
-                  label: "Purchases",
-                  value: meta.total.toLocaleString("en-IN"),
-                  sub: dateFilter === "all" ? "All time" : "Selected period",
-                  icon: Receipt,
-                  color: "bg-blue-50 text-blue-600",
-                },
-                {
-                  label: "Total Spend",
-                  value: fmt(meta.totalSpend),
-                  sub: dateFilter === "all" ? "All time" : "Selected period",
-                  icon: TrendingUp,
-                  color: "bg-emerald-50 text-emerald-600",
-                },
-                {
-                  label: "Line Items",
-                  value: meta.totalLineItems.toLocaleString("en-IN"),
-                  sub: `Page ${meta.page} of ${meta.totalPages}`,
-                  icon: PackageOpen,
-                  color: "bg-violet-50 text-violet-600",
-                },
-              ].map(({ label, value, sub, icon: Icon, color }) => (
-                <Card key={label}>
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={`p-2 rounded-lg shrink-0 ${color}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground">{label}</p>
-                      <p className="text-xl font-bold truncate">{value}</p>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {sub}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <SaleStatCards
+              summary={{
+                purchases: meta.total,
+                spend: meta.totalSpend,
+                totalLine: meta.totalLineItems,
+              }}
+              option={"purchase"}
+            />
           )}
 
           {/* Table card */}

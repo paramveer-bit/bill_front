@@ -148,9 +148,14 @@ export type Pagination = {
 };
 
 export type Summary = {
-    today: { amount: number; count: number };
+    purchases: { amount: number; count: number };
     month: { amount: number; count: number };
     allTime: { amount: number; count: number };
+};
+export type purchaseSummary = {
+    purchases: number,
+    spend: number,
+    totalLine: number
 };
 
 export type SaleDetail = {

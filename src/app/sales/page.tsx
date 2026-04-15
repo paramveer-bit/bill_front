@@ -13,7 +13,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 
 // Shared Helpers & Types
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
-import { SaleListItem, Summary, SortField, Meta } from "@/lib/types"; // Import Meta instead of Pagination
+import { SaleListItem, SortField, Meta } from "@/lib/types"; // Import Meta instead of Pagination
 
 // Centralized Hooks and Shared UI
 import { useDateFilters } from "@/hooks/use-date-filters";
@@ -37,7 +37,6 @@ export default function SalesPage() {
     useDateFilters("month");
 
   // --- Data State ---
-  const [summary, setSummary] = useState<Summary | null>(null);
   const [sales, setSales] = useState<SaleListItem[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null); // Consistent with PurchasePage
 
@@ -68,16 +67,6 @@ export default function SalesPage() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [search]);
-
-  // ── Fetch Data ────────────────────────────────────────────────────────────
-  const fetchSummary = useCallback(async () => {
-    try {
-      const r = await axios.get(`${BASE}/sales/summary`);
-      setSummary(r.data.data);
-    } catch (err) {
-      console.error("Failed to fetch summary");
-    }
-  }, []);
 
   const fetchSales = useCallback(
     async (isInitial = false) => {
@@ -120,10 +109,6 @@ export default function SalesPage() {
   );
 
   useEffect(() => {
-    fetchSummary();
-  }, [fetchSummary]);
-
-  useEffect(() => {
     fetchSales(loading);
   }, [fetchSales]);
 
@@ -150,7 +135,6 @@ export default function SalesPage() {
       showSuccessToast(`Invoice ${deleteTarget.invoiceNo} deleted`);
       setDeleteTarget(null);
       fetchSales();
-      fetchSummary();
     } catch (err) {
       const error = err as AxiosError<any>;
       showErrorToast(
@@ -185,7 +169,16 @@ export default function SalesPage() {
             </Button>
           </div>
           {/* -------------------------Summary Cards------------------------ */}
-          <SaleStatCards summary={summary} />
+          {!loading && meta && (
+            <SaleStatCards
+              summary={{
+                purchases: meta.total,
+                spend: meta.totalSpend,
+                totalLine: meta.totalLineItems,
+              }}
+              option={"sale"}
+            />
+          )}
           {/*-----------------------------Filters---------------------------  */}
           <DataTableFilters
             searchTerm={search}
