@@ -1,6 +1,8 @@
 "use client";
 
+// --------------------------------------Import Statements--------------------------------------
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -12,47 +14,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Pencil, Trash2, Mail, Phone } from "lucide-react";
+import { Plus, Search, Pencil, Mail, Phone, FileText } from "lucide-react";
+
+import Add_new_customer from "@/components/customer/Add_new_customer";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import axios, { AxiosError } from "axios";
-import { showErrorToast } from "@/lib/helpers";
-type Customer = {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  gstNumber: string;
-  address: string;
-  town: string;
-};
+import axios from "axios";
+import { showErrorToast } from "@/lib/helpers/toast";
+import { Customer } from "@/lib/types";
+const BASE = process.env.NEXT_PUBLIC_BASEURL;
 
+// --------------------------------------Customers Page Component--------------------------------------
 export default function CustomersPage() {
+  const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    gstNumber: "",
-    address: "",
-    town: "",
-  });
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null,
+  );
   const filteredCustomers = customers.filter(
     (customer) =>
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -61,89 +42,25 @@ export default function CustomersPage() {
       customer.town.includes(searchTerm),
   );
 
-  const handleAddCustomer = async () => {
-    try {
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_BASEURL}/customer`,
-        { ...formData },
-      );
-      const newCustomer: Customer = res.data.data;
-      setCustomers([...customers, newCustomer]);
-      setIsAddDialogOpen(false);
-      resetForm();
-    } catch (err) {
-      const error = err as AxiosError<any>;
-      const errorMessage =
-        error.response?.data?.errors?.[0]?.message || "Try again later";
-      showErrorToast(errorMessage);
-    }
-  };
-
-  const handleEditCustomer = async () => {
-    if (editingCustomer) {
-      try {
-        const res = await axios.put(
-          `${process.env.NEXT_PUBLIC_BASEURL}/customer/${editingCustomer.id}`,
-          { ...formData },
-        );
-        let edittedCustomer = res.data.data;
-        setCustomers(
-          customers.map((c) =>
-            c.id === edittedCustomer.id
-              ? {
-                  ...editingCustomer,
-                  ...formData,
-                }
-              : c,
-          ),
-        );
-        setIsEditDialogOpen(false);
-        setEditingCustomer(null);
-        resetForm();
-      } catch (error) {
-        const err = error as AxiosError<any>;
-        const errorMessage =
-          err.response?.data?.errors?.[0]?.message || "Try again later";
-        showErrorToast(errorMessage);
-      }
-    }
-  };
-
   // Delete Customer option only for admin
-  const handleDeleteCustomer = (id: number) => {
+  const handleDeleteCustomer = (id: string) => {
     // setCustomers(customers.filter((c) => c.id !== id));
   };
 
-  const openEditDialog = (customer: Customer) => {
-    setEditingCustomer(customer);
-    setFormData({
-      name: customer.name,
-      phone: customer.phone,
-      email: customer.email,
-      gstNumber: customer.gstNumber,
-      address: customer.address,
-      town: customer.town,
-    });
-    setIsEditDialogOpen(true);
+  const openAddDialog = () => {
+    setSelectedCustomer(null);
+    setIsDialogOpen(true);
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      phone: "",
-      email: "",
-      gstNumber: "",
-      address: "",
-      town: "",
-    });
+  const openEditDialog = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsDialogOpen(true);
   };
 
   useEffect(() => {
     const fetchCoustomer = async () => {
       try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_BASEURL}/customer`,
-        );
+        const res = await axios.get(`${BASE}/customer`);
         setCustomers(res.data.data);
       } catch (error) {
         showErrorToast("Error while fetching coustomers data");
@@ -164,107 +81,19 @@ export default function CustomersPage() {
                 Manage your customer database
               </p>
             </div>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={resetForm}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Customer
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Add New Customer</DialogTitle>
-                </DialogHeader>
-                <div className="grid grid-cols-2 gap-4 py-4">
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="name">Customer Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="Enter customer name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      placeholder="+91 98765 43210"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="customer@example.com"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="gst">GST Number</Label>
-                    <Input
-                      id="gst"
-                      placeholder="27AABCU9603R1ZM"
-                      value={formData.gstNumber}
-                      onChange={(e) =>
-                        setFormData({ ...formData, gstNumber: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="address">Billing Address</Label>
-                    <Textarea
-                      id="address"
-                      placeholder="Enter billing address"
-                      value={formData.address}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          address: e.target.value,
-                        })
-                      }
-                      rows={2}
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="town">Town</Label>
-                    <Textarea
-                      id="town"
-                      placeholder="Enter Town"
-                      value={formData.town}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          town: e.target.value,
-                        })
-                      }
-                      rows={2}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsAddDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddCustomer}>Add Customer</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </div>
-
+          {/* Addd new Coustomer */}
+          <Button onClick={openAddDialog}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Customer
+          </Button>
+          <Add_new_customer
+            customers={customers}
+            setCustomers={setCustomers}
+            isDialogOpen={isDialogOpen}
+            setIsDialogOpen={setIsDialogOpen}
+            customerToEdit={selectedCustomer}
+          />
           <Card>
             <CardHeader>
               <div className="flex items-center gap-4">
@@ -286,7 +115,8 @@ export default function CustomersPage() {
                     <TableHead>Customer Name</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>GST Number</TableHead>
-                    <TableHead>Billing Address</TableHead>
+                    <TableHead>Town</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -312,24 +142,46 @@ export default function CustomersPage() {
                       </TableCell>
                       <TableCell>{customer.gstNumber}</TableCell>
                       <TableCell className="max-w-xs truncate">
-                        {customer.address}
+                        {customer.town}
+                      </TableCell>
+                      {/* --- Balance Column with Conditional Styling --- */}
+                      <TableCell
+                        className={`text-right font-bold ${
+                          customer.balance > 0
+                            ? "text-destructive"
+                            : "text-green-600"
+                        }`}
+                      >
+                        ₹{customer.balance.toLocaleString("en-IN")}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              router.push(`/customers/${customer.id}/ledger`)
+                            }
+                          >
+                            <FileText className="mr-1 h-3 w-3" /> Ledger
+                          </Button>
+                          {/* Edit Button For Sutomer Details */}
+                          <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => openEditDialog(customer)}
+                            onClick={() => {
+                              openEditDialog(customer);
+                            }}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
+                          {/* <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteCustomer(customer.id)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          </Button> */}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -348,88 +200,6 @@ export default function CustomersPage() {
               </Table>
             </CardContent>
           </Card>
-
-          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Edit Customer</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-2 gap-4 py-4">
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="edit-name">Customer Name</Label>
-                  <Input
-                    id="edit-name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-phone">Phone</Label>
-                  <Input
-                    id="edit-phone"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-email">Email</Label>
-                  <Input
-                    id="edit-email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="edit-gst">GST Number</Label>
-                  <Input
-                    id="edit-gst"
-                    value={formData.gstNumber}
-                    onChange={(e) =>
-                      setFormData({ ...formData, gstNumber: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="edit-address">Billing Address</Label>
-                  <Textarea
-                    id="edit-address"
-                    value={formData.address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, town: e.target.value })
-                    }
-                    rows={2}
-                  />
-                </div>
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="edit-town">Town</Label>
-                  <Textarea
-                    id="edit-town"
-                    value={formData.town}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
-                    rows={2}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleEditCustomer}>Save Changes</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       </SidebarInset>
     </SidebarProvider>

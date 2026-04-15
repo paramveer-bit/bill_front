@@ -40,7 +40,7 @@ import { useState } from "react";
 
 import { type Category, type Product, buildCategoryTree } from "@/lib/types";
 import axios, { AxiosError } from "axios";
-import { showErrorToast } from "@/lib/helpers";
+import { showErrorToast } from "@/lib/helpers/toast";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 

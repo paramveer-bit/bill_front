@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProductsTab } from "@/components/ProductsTab";
+import { ProductsTab } from "@/components/product/ProductTab";
 import { CategoriesTab } from "@/components/CategoriesTab";
 import { type Category, type Product } from "@/lib/types";
 import axios, { AxiosError } from "axios";
-import { showErrorToast } from "@/lib/helpers";
+import { showErrorToast } from "@/lib/helpers/toast";
 import { Loader2 } from "lucide-react";
 
 const BASE = process.env.NEXT_PUBLIC_BASEURL;

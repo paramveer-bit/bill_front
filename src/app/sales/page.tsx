@@ -1,399 +1,246 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import axios, { AxiosError } from "axios";
+import { Plus } from "lucide-react";
+
+// UI Components
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Plus, Search, Eye, Trash2, Calendar, User } from "lucide-react";
-import { AppSidebar } from "@/components/app-sidebar";
+import { Card, CardContent } from "@/components/ui/card";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { AppSidebar } from "@/components/app-sidebar";
 
-type SaleLine = {
-  productId: number;
-  productName: string;
-  qty: number;
-  unitSellPrice: number;
-  taxRate: number;
-  lineTotal: number;
-};
+// Shared Helpers & Types
+import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
+import { SaleListItem, Summary, SortField, Meta } from "@/lib/types"; // Import Meta instead of Pagination
 
-type Sale = {
-  id: number;
-  invoiceNo: string;
-  customerId: number;
-  customerName: string;
-  saleDate: string;
-  totalAmount: number;
-  lines: SaleLine[];
-};
+// Centralized Hooks and Shared UI
+import { useDateFilters } from "@/hooks/use-date-filters";
+import { AppPagination } from "@/components/AppPagination";
 
-const mockProducts = [
-  { id: 1, name: "Laptop", price: 45000, taxRate: 18 },
-  { id: 2, name: "Mouse", price: 500, taxRate: 18 },
-  { id: 3, name: "Keyboard", price: 1200, taxRate: 18 },
-];
+// Sub-components
+import { SaleStatCards } from "@/components/sales/SaleStatCards";
+import { DataTableFilters } from "@/components/Filters";
+import { SaleTable } from "@/components/sales/SaleTable";
+import { SaleDetailDialog } from "@/components/sales/SaleDetailDialog";
+import { DeleteConfirmDialog } from "@/components/sales/DeleteConfirmDialog";
 
-const mockCustomers = [
-  { id: 1, name: "ABC Corporation" },
-  { id: 2, name: "XYZ Enterprises" },
-];
+const BASE = process.env.NEXT_PUBLIC_BASEURL;
+const PAGE_SIZE = 20;
 
 export default function SalesPage() {
   const router = useRouter();
-  const [sales, setSales] = useState<Sale[]>([
-    {
-      id: 1,
-      invoiceNo: "INV-S-2024-001",
-      customerId: 1,
-      customerName: "ABC Corporation",
-      saleDate: "2024-01-15",
-      totalAmount: 106200,
-      lines: [
-        {
-          productId: 1,
-          productName: "Laptop",
-          qty: 2,
-          unitSellPrice: 45000,
-          taxRate: 18,
-          lineTotal: 106200,
-        },
-      ],
-    },
-    {
-      id: 2,
-      invoiceNo: "INV-S-2024-002",
-      customerId: 2,
-      customerName: "XYZ Enterprises",
-      saleDate: "2024-01-18",
-      totalAmount: 5900,
-      lines: [
-        {
-          productId: 2,
-          productName: "Mouse",
-          qty: 10,
-          unitSellPrice: 500,
-          taxRate: 18,
-          lineTotal: 5900,
-        },
-      ],
-    },
-  ]);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState("all");
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [viewingSale, setViewingSale] = useState<Sale | null>(null);
+  // --- Centralized Date State ---
+  const { dateFilter, setDateFilter, customRange, setCustomRange, dateParams } =
+    useDateFilters("month");
 
-  const filteredSales = sales.filter((sale) => {
-    const matchesSearch =
-      sale.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.customerName.toLowerCase().includes(searchTerm.toLowerCase());
+  // --- Data State ---
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [sales, setSales] = useState<SaleListItem[]>([]);
+  const [meta, setMeta] = useState<Meta | null>(null); // Consistent with PurchasePage
 
-    if (!matchesSearch) return false;
+  // --- UI State ---
+  const [loading, setLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<SortField>("saleDate");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-    if (dateFilter === "all") return true;
+  // --- Dialog State ---
+  const [viewId, setViewId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SaleListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-    const saleDate = new Date(sale.saleDate);
-    const now = new Date();
-    const dayInMs = 24 * 60 * 60 * 1000;
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    switch (dateFilter) {
-      case "1day":
-        return now.getTime() - saleDate.getTime() <= dayInMs;
-      case "week":
-        return now.getTime() - saleDate.getTime() <= 7 * dayInMs;
-      case "month":
-        return (
-          saleDate.getMonth() === now.getMonth() &&
-          saleDate.getFullYear() === now.getFullYear()
-        );
-      case "quarter":
-        const currentQuarter = Math.floor(now.getMonth() / 3);
-        const saleQuarter = Math.floor(saleDate.getMonth() / 3);
-        return (
-          saleQuarter === currentQuarter &&
-          saleDate.getFullYear() === now.getFullYear()
-        );
-      default:
-        return true;
+  // ── Search Debouncing ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [search]);
+
+  // ── Fetch Data ────────────────────────────────────────────────────────────
+  const fetchSummary = useCallback(async () => {
+    try {
+      const r = await axios.get(`${BASE}/sales/summary`);
+      setSummary(r.data.data);
+    } catch (err) {
+      console.error("Failed to fetch summary");
     }
-  });
+  }, []);
 
-  const handleDeleteSale = (id: number) => {
-    setSales(sales.filter((s) => s.id !== id));
+  const fetchSales = useCallback(
+    async (isInitial = false) => {
+      if (dateFilter === "custom" && (!customRange.start || !customRange.end))
+        return;
+
+      if (isInitial) setLoading(true);
+      else setTableLoading(true);
+
+      try {
+        const params = {
+          page,
+          limit: PAGE_SIZE,
+          sortBy,
+          sortOrder,
+          ...dateParams,
+          ...(debouncedSearch && { search: debouncedSearch }),
+        };
+
+        const res = await axios.get(`${BASE}/sales`, { params });
+        setSales(res.data.data.sales);
+        setMeta(res.data.data.meta); // Now using meta from backend
+      } catch (err) {
+        const error = err as AxiosError<any>;
+        showErrorToast(error.response?.data?.message || "Failed to load sales");
+      } finally {
+        setLoading(false);
+        setTableLoading(false);
+      }
+    },
+    [
+      page,
+      debouncedSearch,
+      dateParams,
+      dateFilter,
+      customRange,
+      sortBy,
+      sortOrder,
+    ],
+  );
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
+
+  useEffect(() => {
+    fetchSales(loading);
+  }, [fetchSales]);
+
+  // Reset page when filters or sorting change
+  useEffect(() => {
+    setPage(1);
+  }, [sortBy, sortOrder, dateFilter]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
+  const handleSort = (field: SortField) => {
+    if (sortBy === field) {
+      setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortOrder("desc");
+    }
   };
 
-  const openViewDialog = (sale: Sale) => {
-    setViewingSale(sale);
-    setIsViewDialogOpen(true);
-  };
-
-  const calculateSubtotal = (lines: SaleLine[]) => {
-    return lines.reduce((sum, line) => sum + line.qty * line.unitSellPrice, 0);
-  };
-
-  const calculateTotalTax = (lines: SaleLine[]) => {
-    const subtotal = calculateSubtotal(lines);
-    const total = lines.reduce((sum, line) => sum + line.lineTotal, 0);
-    return total - subtotal;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`${BASE}/sales/${deleteTarget.id}`);
+      showSuccessToast(`Invoice ${deleteTarget.invoiceNo} deleted`);
+      setDeleteTarget(null);
+      fetchSales();
+      fetchSummary();
+    } catch (err) {
+      const error = err as AxiosError<any>;
+      showErrorToast(
+        error.response?.data?.message || "Failed to delete invoice",
+      );
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="p-6 space-y-5 max-w-[1400px]">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Sales & Invoices</h1>
-              <p className="text-muted-foreground">
-                Manage your sales transactions
+              <h1 className="text-2xl font-bold tracking-tight">
+                Sales & Invoices
+              </h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {meta
+                  ? `${meta.total.toLocaleString()} total invoices`
+                  : "Loading…"}
               </p>
             </div>
-            <Button onClick={() => router.push("/sales/new")}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Invoice
+            <Button
+              onClick={() => router.push("/sales/new")}
+              className="shrink-0"
+            >
+              <Plus className="mr-2 h-4 w-4" /> New Invoice
             </Button>
           </div>
+          {/* -------------------------Summary Cards------------------------ */}
+          <SaleStatCards summary={summary} />
+          {/*-----------------------------Filters---------------------------  */}
+          <DataTableFilters
+            searchTerm={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search invoice or customer"
+            dateFilter={dateFilter}
+            onDateFilterChange={(v: any) => {
+              setDateFilter(v);
+              setPage(1);
+            }}
+            customRange={customRange}
+            onCustomRangeChange={setCustomRange}
+            onRefresh={() => fetchSales()}
+          />
+          {/* ----------------------------Table------------------------------ */}
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <SaleTable
+                sales={sales}
+                loading={loading}
+                tableLoading={tableLoading}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                onView={setViewId}
+                onDelete={setDeleteTarget}
+              />
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by invoice number or customer..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Time</SelectItem>
-                    <SelectItem value="1day">Last 24 Hours</SelectItem>
-                    <SelectItem value="week">Last Week</SelectItem>
-                    <SelectItem value="month">This Month</SelectItem>
-                    <SelectItem value="quarter">This Quarter</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice No</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Sale Date</TableHead>
-                    <TableHead className="text-right">Total Amount</TableHead>
-                    <TableHead className="text-center">Items</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSales.map((sale) => (
-                    <TableRow key={sale.id}>
-                      <TableCell className="font-medium">
-                        {sale.invoiceNo}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          {sale.customerName}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {new Date(sale.saleDate).toLocaleDateString("en-IN")}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        ₹{sale.totalAmount.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          {sale.lines.length} items
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openViewDialog(sale)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteSale(sale.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredSales.length === 0 && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No sales found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              {/* --- PERFECTLY CONSISTENT PAGINATION --- */}
+              {meta && (
+                <AppPagination
+                  page={page}
+                  totalPages={meta.totalPages}
+                  totalItems={meta.total}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={(p) => setPage(p)}
+                  tableLoading={tableLoading}
+                />
+              )}
             </CardContent>
           </Card>
-
-          <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Invoice Details</DialogTitle>
-              </DialogHeader>
-              {viewingSale && (
-                <div className="space-y-6 py-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Invoice Number
-                      </p>
-                      <p className="font-semibold">{viewingSale.invoiceNo}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Customer</p>
-                      <p className="font-semibold">
-                        {viewingSale.customerName}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Sale Date</p>
-                      <p className="font-semibold">
-                        {new Date(viewingSale.saleDate).toLocaleDateString(
-                          "en-IN"
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-3">Invoice Items</h3>
-                    <div className="border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Product</TableHead>
-                            <TableHead className="text-right">
-                              Quantity
-                            </TableHead>
-                            <TableHead className="text-right">
-                              Unit Price
-                            </TableHead>
-                            <TableHead className="text-right">Tax %</TableHead>
-                            <TableHead className="text-right">
-                              Line Total
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {viewingSale.lines.map((line, index) => (
-                            <TableRow key={index}>
-                              <TableCell className="font-medium">
-                                {line.productName}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {line.qty}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                ₹{line.unitSellPrice.toLocaleString()}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {line.taxRate}%
-                              </TableCell>
-                              <TableCell className="text-right">
-                                ₹{line.lineTotal.toLocaleString()}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-right">
-                              Subtotal
-                            </TableCell>
-                            <TableCell className="text-right">
-                              ₹
-                              {calculateSubtotal(
-                                viewingSale.lines
-                              ).toLocaleString()}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-right">
-                              Tax
-                            </TableCell>
-                            <TableCell className="text-right">
-                              ₹
-                              {calculateTotalTax(
-                                viewingSale.lines
-                              ).toLocaleString()}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell
-                              colSpan={4}
-                              className="text-right font-semibold"
-                            >
-                              Total Amount
-                            </TableCell>
-                            <TableCell className="text-right font-bold text-lg">
-                              ₹{viewingSale.totalAmount.toLocaleString()}
-                            </TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <DialogFooter>
-                <Button onClick={() => setIsViewDialogOpen(false)}>
-                  Close
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
+
+        <SaleDetailDialog
+          saleId={viewId}
+          open={viewId !== null}
+          onClose={() => setViewId(null)}
+        />
+        <DeleteConfirmDialog
+          open={deleteTarget !== null}
+          invoiceNo={deleteTarget?.invoiceNo ?? ""}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
       </SidebarInset>
     </SidebarProvider>
   );

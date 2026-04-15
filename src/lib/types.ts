@@ -1,3 +1,29 @@
+// ----------------------------------------Customer Type------------------------------------------------------
+export type Customer = {
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+    gstNumber: string;
+    address: string;
+    town: string;
+    balance: number;
+    openingBalance: number
+};
+
+// --------------------------------Leder type for customer and supplier Ledger----------------------------
+export interface LedgerEntry {
+    id: string;
+    date: string;
+    type: "SALE" | "RECEIPT" | "RETURN" | "PURCHASE" | "PAYMENT";
+    desc: string;
+    debit: number;
+    credit: number;
+    runningBalance: number;
+}
+
+
+
 export type UnitConversion = {
     id: string;
     productId: string;
@@ -21,10 +47,154 @@ export type Product = {
     currentSellPrice: number;
     taxRate: number;
     isStockItem: boolean;
+    category: Category
     categoryId: string | null;
     unitConversions: UnitConversion[];
     totalStockPcs?: number;
+    // Relations - These must be added to stop the TS error
+    purchaseBatches?: PurchaseBatch[];
+
+    // Calculated field from backend (if you added it in the last step)
 };
+
+export type Supplier = {
+    id: number;
+    name: string;
+    contactName: string;
+    phone: string;
+    email: string;
+    gstNumber: string;
+    address: string;
+    openingBalance: number;
+    balance: number;
+}
+
+
+// ---------------------------------------------For Purchase Page------------------------------------
+export type PurchaseListItem = {
+    id: string;
+    supplierId: string;
+    supplier: { id: string; name: string };
+    invoiceNo: string | null;
+    purchaseDate: string;
+    totalAmount: number;
+    createdAt: string;
+    batchCount: number;
+};
+
+export type PurchaseBatch = {
+    id: string;
+    productId: string;
+    product: { id: string; name: string; sku: string | null; baseUnit: string };
+    qtyReceived: number;
+    qtyRemaining: number;
+    unitCost: number;
+    sellingPrice: number | null;
+    mrp: number | null;
+};
+
+export type PurchaseDetail = {
+    id: string;
+    supplier: {
+        id: string;
+        name: string;
+        contactName: string | null;
+        phone: string | null;
+        email: string | null;
+        gstNumber: string | null;
+        address: string | null;
+    };
+    invoiceNo: string | null;
+    purchaseDate: string;
+    totalAmount: number;
+    batches: PurchaseBatch[];
+};
+
+// -------------------------------------------For Sale ----------------------------------------------
+export type SaleListItem = {
+    id: string; // uuid — was Int, now String
+    invoiceNo: string;
+    saleDate: string;
+    totalAmount: number;
+    createdAt: string;
+    // Snapshot fields — always available even if customer is deleted or renamed
+    customerName: string | null;
+    customerPhone: string | null;
+    customer: {
+        id: string;
+        name: string;
+        phone: string | null;
+        town: string;
+    } | null;
+    _count: { lines: number };
+};
+export type SaleRow = {
+    productId: string;
+    qtyInput: string;
+    selectedUnit: string;
+    qtyBase: number;
+    sellPrice: string;
+    product: any | null;
+    stockBase: number | null;
+    loadingStock: boolean;
+};
+export type Pagination = {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+};
+
+export type Summary = {
+    today: { amount: number; count: number };
+    month: { amount: number; count: number };
+    allTime: { amount: number; count: number };
+};
+
+export type SaleDetail = {
+    id: string; // uuid
+    invoiceNo: string;
+    saleDate: string;
+    totalAmount: number;
+    // Customer snapshot fields (historical accuracy)
+    customerName: string | null;
+    customerPhone: string | null;
+    customerAddress: string | null;
+    customerGST: string | null;
+    customer: {
+        id: string;
+        name: string;
+        phone: string | null;
+        town: string;
+        balance: number;
+    } | null;
+    lines: {
+        id: number;
+        qty: number; // base unit qty
+        unitQty: number; // display qty
+        unitname: string; // display unit name (e.g. "Case")
+        productName: string; // snapshot — always accurate
+        unitSellPrice: number;
+        lineTotal: number;
+        taxRate: number | null;
+        product: { id: string; name: string; sku: string | null; baseUnit: string };
+    }[];
+};
+
+export type SortField = "saleDate" | "totalAmount" | "invoiceNo";
+
+// ----------------------------------For Pagination --------------------------------------
+export type Meta = {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    totalSpend: number;
+    totalLineItems: number;
+};
+
 
 /** Returns top-level categories with their children nested inside */
 export function buildCategoryTree(flat: Category[]): Category[] {
