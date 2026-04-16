@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios, { AxiosError } from "axios";
-import { Plus } from "lucide-react";
+import { Loader2, Plus, Printer } from "lucide-react";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 
 // Shared Helpers & Types
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
-import { SaleListItem, SortField, Meta } from "@/lib/types"; // Import Meta instead of Pagination
+import { SaleListItem, SortField, Meta, SaleDetail } from "@/lib/types"; // Import Meta instead of Pagination
 
 // Centralized Hooks and Shared UI
 import { useDateFilters } from "@/hooks/use-date-filters";
@@ -25,6 +25,8 @@ import { DataTableFilters } from "@/components/Filters";
 import { SaleTable } from "@/components/sales/SaleTable";
 import { SaleDetailDialog } from "@/components/sales/SaleDetailDialog";
 import { DeleteConfirmDialog } from "@/components/sales/DeleteConfirmDialog";
+import { BatchInvoicePrinter } from "@/components/sales/BatchInvoicePrinter";
+import { useReactToPrint } from "react-to-print";
 
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const PAGE_SIZE = 20;
@@ -49,6 +51,11 @@ export default function SalesPage() {
   const [sortBy, setSortBy] = useState<SortField>("saleDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
+  // ---------------------------------- For Prinitng Invoices--------------------------------------
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchData, setBatchData] = useState<SaleDetail[]>([]);
+  const [isPreparingBatch, setIsPreparingBatch] = useState(false);
+  const batchPrintRef = useRef(null);
   // --- Dialog State ---
   const [viewId, setViewId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SaleListItem | null>(null);
@@ -145,6 +152,58 @@ export default function SalesPage() {
     }
   };
 
+  // Fetch full invoice details when print dialog opens
+  // const handlePrintInvoice = async (saleId: string) => {
+  //   try {
+  //     const res = await axios.get(`${BASE}/sales/${saleId}`);
+  //     setSelectedInvoice(res.data.data);
+  //     setPrintOpen(true);
+  //   } catch (err) {
+  //     const error = err as AxiosError<any>;
+  //     showErrorToast(
+  //       error.response?.data?.message || "Failed to load invoice details",
+  //     );
+  //   }
+  // };
+
+  // Hook for batch printing
+  const handleBatchPrintTrigger = useReactToPrint({
+    contentRef: batchPrintRef,
+    documentTitle: "Batch_Invoices",
+  });
+
+  const fetchInvoiceDetails = async (id: string) => {
+    console.log(id);
+    try {
+      const res = await axios.get(`${BASE}/sales/${id}`);
+      return res.data.data.sale;
+    } catch (error) {
+      const err = error as AxiosError<any>;
+      throw new Error(
+        err.response?.data?.message || `Failed to load sales ${id}`,
+      );
+    }
+  };
+  const onBatchPrint = async () => {
+    setIsPreparingBatch(true);
+    try {
+      // 1. Fetch full details for all selected IDs
+      // You need full line items for printing, which the table might not have
+      const fullInvoices = await Promise.all(
+        selectedIds.map((id) => fetchInvoiceDetails(id)),
+      );
+      setBatchData(fullInvoices);
+
+      // 2. Small timeout to allow React to render the hidden component
+      setTimeout(() => {
+        handleBatchPrintTrigger();
+        setIsPreparingBatch(false);
+      }, 500);
+    } catch (error) {
+      console.error("Batch print failed", error);
+      setIsPreparingBatch(false);
+    }
+  };
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -196,6 +255,19 @@ export default function SalesPage() {
           {/* ----------------------------Table------------------------------ */}
           <Card className="overflow-hidden">
             <CardContent className="p-0">
+              <div className="flex justify-between mb-4 px-5">
+                <h1 className="text-2xl font-bold">Sales Invoices</h1>
+                {selectedIds.length > 0 && (
+                  <Button onClick={onBatchPrint} disabled={isPreparingBatch}>
+                    {isPreparingBatch ? (
+                      <Loader2 className="animate-spin mr-2" />
+                    ) : (
+                      <Printer className="mr-2" />
+                    )}
+                    Print Selected ({selectedIds.length})
+                  </Button>
+                )}
+              </div>
               <SaleTable
                 sales={sales}
                 loading={loading}
@@ -205,6 +277,16 @@ export default function SalesPage() {
                 onSort={handleSort}
                 onView={setViewId}
                 onDelete={setDeleteTarget}
+                // onPrint={handlePrintInvoice} // Add this prop
+                selectedIds={selectedIds}
+                onSelectRow={(id: string) =>
+                  setSelectedIds((prev) =>
+                    prev.includes(id)
+                      ? prev.filter((i) => i !== id)
+                      : [...prev, id],
+                  )
+                }
+                onSelectAll={(ids: string[]) => setSelectedIds(ids)}
               />
 
               {/* --- PERFECTLY CONSISTENT PAGINATION --- */}
@@ -233,6 +315,11 @@ export default function SalesPage() {
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
           loading={deleting}
+        />
+        <BatchInvoicePrinter
+          ref={batchPrintRef}
+          invoices={batchData}
+          companyName="YOUR COMPANY"
         />
       </SidebarInset>
     </SidebarProvider>

@@ -36,6 +36,20 @@ function SortIcon({
   );
 }
 
+interface saleTableProps {
+  sales: SaleListItem[];
+  loading: boolean;
+  tableLoading: boolean;
+  sortBy: SortField;
+  sortOrder: "asc" | "desc";
+  onSort: (field: SortField) => void;
+  onView: React.Dispatch<React.SetStateAction<string | null>>;
+  onDelete: React.Dispatch<React.SetStateAction<SaleListItem | null>>;
+  selectedIds: string[];
+  onSelectRow: (id: string) => void;
+  onSelectAll: (ids: string[]) => void;
+}
+
 export function SaleTable({
   sales,
   loading,
@@ -45,17 +59,39 @@ export function SaleTable({
   onSort,
   onView,
   onDelete,
-}: any) {
+
+  selectedIds, // New Prop: string[]
+  onSelectRow, // New Prop: (id: string) => void
+  onSelectAll,
+}: saleTableProps) {
   return (
-    <div className="overflow-x-auto relative">
+    <div className="overflow-x-auto relative pl-2">
       {tableLoading && (
         <div className="absolute inset-0 bg-background/60 z-10 flex items-center justify-center">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       )}
       <Table>
+        {/* ------------------------Columns headers------------------------------------------- */}
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
+            {/*------------------------Check Box To Select All Bills------------------------------  */}
+            <TableHead className="w-[50px]">
+              <input
+                type="checkbox"
+                // If box is checked we will give and array of sales Id as paramtere else empty array
+                onChange={(e) =>
+                  onSelectAll(
+                    e.target.checked
+                      ? sales.map((s: SaleListItem) => s.id)
+                      : [],
+                  )
+                }
+                checked={
+                  selectedIds.length === sales.length && sales.length > 0
+                }
+              />
+            </TableHead>
             <TableHead className="w-[160px]">
               <button
                 onClick={() => onSort("invoiceNo")}
@@ -138,6 +174,14 @@ export function SaleTable({
                 className="group cursor-pointer"
                 onClick={() => onView(sale.id)}
               >
+                {/* ------------------------CheckBox Implementation------------------------- */}
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(sale.id)}
+                    onChange={() => onSelectRow(sale.id)}
+                  />
+                </TableCell>
                 <TableCell>
                   <span className="font-mono text-sm font-medium text-primary">
                     {sale.invoiceNo}
@@ -174,6 +218,17 @@ export function SaleTable({
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
+                    {/* -------------------- For Prinitng */}
+                    {/* <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onPrint(sale.id)}
+                      className="gap-2"
+                      title="Print invoice"
+                    >
+                      <Printer className="w-4 h-4" />
+                      Print
+                    </Button> */}
                     <Button
                       variant="ghost"
                       size="icon"

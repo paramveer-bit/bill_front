@@ -157,7 +157,17 @@ export type purchaseSummary = {
     spend: number,
     totalLine: number
 };
-
+export type SalesLine = {
+    id: number;
+    qty: number; // base unit qty
+    unitQty: number; // display qty
+    unitname: string; // display unit name (e.g. "Case")
+    productName: string; // snapshot — always accurate
+    unitSellPrice: number;
+    lineTotal: number;
+    taxRate: number | null;
+    product: { id: string; name: string; sku: string | null; baseUnit: string };
+}
 export type SaleDetail = {
     id: string; // uuid
     invoiceNo: string;
@@ -175,17 +185,7 @@ export type SaleDetail = {
         town: string;
         balance: number;
     } | null;
-    lines: {
-        id: number;
-        qty: number; // base unit qty
-        unitQty: number; // display qty
-        unitname: string; // display unit name (e.g. "Case")
-        productName: string; // snapshot — always accurate
-        unitSellPrice: number;
-        lineTotal: number;
-        taxRate: number | null;
-        product: { id: string; name: string; sku: string | null; baseUnit: string };
-    }[];
+    lines: SalesLine[];
 };
 
 export type SortField = "saleDate" | "totalAmount" | "invoiceNo";
