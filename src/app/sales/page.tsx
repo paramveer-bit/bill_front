@@ -24,7 +24,7 @@ import { SaleStatCards } from "@/components/sales/SaleStatCards";
 import { DataTableFilters } from "@/components/Filters";
 import { SaleTable } from "@/components/sales/SaleTable";
 import { SaleDetailDialog } from "@/components/sales/SaleDetailDialog";
-import { DeleteConfirmDialog } from "@/components/sales/DeleteConfirmDialog";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { BatchInvoicePrinter } from "@/components/sales/BatchInvoicePrinter";
 import { useReactToPrint } from "react-to-print";
 
@@ -311,7 +311,17 @@ export default function SalesPage() {
         />
         <DeleteConfirmDialog
           open={deleteTarget !== null}
-          invoiceNo={deleteTarget?.invoiceNo ?? ""}
+          title="Invoice"
+          message={
+            <>
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-foreground">
+                {deleteTarget?.invoiceNo}
+              </span>
+              ? This will reverse all stock and balance changes. This cannot be
+              undone.
+            </>
+          }
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
           loading={deleting}

@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { PriceInput } from "./PriceInput";
+import { showErrorToast } from "@/lib/helpers/toast";
 
 // -- Helper Logic (Moved from main page for encapsulation) --
 function getConvQty(unitName: string, conversions: any[]): number {
@@ -79,6 +80,7 @@ export function BatchRowItem({
   focusOnMount,
   onChange,
   onRemove,
+  batches,
 }: any) {
   const product = products.find((p: any) => p.id === batch.productId);
   const conversions = product ? sortedConversions(product.unitConversions) : [];
@@ -98,6 +100,17 @@ export function BatchRowItem({
   }, [focusOnMount]);
 
   const handleProductChange = (productId: string) => {
+    // Defensive check for duplicates
+    const isDuplicate = batches.some(
+      (b: any, i: number) => b.productId === productId && i !== index,
+    );
+
+    if (isDuplicate) {
+      // Requires: import { showErrorToast } from "@/lib/helpers/toast";
+      showErrorToast("This product is already added to the purchase list.");
+      setProductOpen(false);
+      return;
+    }
     const p = products.find((pr: any) => pr.id === productId);
     const convs = p ? sortedConversions(p.unitConversions) : [];
     const defaultUnit = convs[0]?.unitName ?? p?.baseUnit ?? "";
@@ -182,29 +195,37 @@ export function BatchRowItem({
                 <CommandList>
                   <CommandEmpty>No product found.</CommandEmpty>
                   <CommandGroup>
-                    {products.map((p: any) => (
-                      <CommandItem
-                        key={p.id}
-                        onSelect={() => handleProductChange(p.id)}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-3.5 w-3.5",
-                            batch.productId === p.id
-                              ? "opacity-100"
-                              : "opacity-0",
-                          )}
-                        />
-                        <div className="flex flex-col min-w-0">
-                          <span className="truncate">{p.name}</span>
-                          {p.sku && (
-                            <span className="text-xs text-muted-foreground">
-                              {p.sku}
-                            </span>
-                          )}
-                        </div>
-                      </CommandItem>
-                    ))}
+                    {products
+                      .filter(
+                        (p: any) =>
+                          !batches.some(
+                            (b: any, i: number) =>
+                              b.productId === p.id && i !== index,
+                          ),
+                      )
+                      .map((p: any) => (
+                        <CommandItem
+                          key={p.id}
+                          onSelect={() => handleProductChange(p.id)}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-3.5 w-3.5",
+                              batch.productId === p.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <span className="truncate">{p.name}</span>
+                            {p.sku && (
+                              <span className="text-xs text-muted-foreground">
+                                {p.sku}
+                              </span>
+                            )}
+                          </div>
+                        </CommandItem>
+                      ))}
                   </CommandGroup>
                 </CommandList>
               </Command>

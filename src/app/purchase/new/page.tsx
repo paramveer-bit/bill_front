@@ -115,11 +115,11 @@ export default function NewPurchasePage() {
     e.preventDefault();
     if (!isValid) return;
     try {
-      setSubmitting(true);
       const payload = {
         supplierId: formData.supplierId,
         invoiceNo: formData.invoiceNo.trim() || undefined,
         purchaseDate: new Date(formData.purchaseDate).toISOString(),
+        totalAmount: totalAmount,
         batches: batches.map((b) => {
           const product: any = products.find((p: any) => p.id === b.productId);
           const convs = product.unitConversions;
@@ -133,6 +133,7 @@ export default function NewPurchasePage() {
           };
         }),
       };
+      console.log("Submitting payload:", payload);
       await axios.post(`${BASE}/purchases`, payload);
       showSuccessToast("Purchase saved successfully");
       router.push("/purchase");
@@ -223,6 +224,7 @@ export default function NewPurchasePage() {
                               batch={batch}
                               index={index}
                               products={products}
+                              batches={batches} // <-- Pass the full array of current batches
                               canRemove={batches.length > 1}
                               focusOnMount={index === newestIndex}
                               onChange={(i: any, updated: any) => {

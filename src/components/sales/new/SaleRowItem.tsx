@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/command";
 import { SalePriceInput } from "./SalePriceInput";
 import { Product, SaleRow, UnitConversion } from "@/lib/types";
+import { showErrorToast } from "@/lib/helpers/toast";
 
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 
@@ -56,6 +57,7 @@ const stockInSelectedUnit = (
 export function SaleRowItem({
   row,
   index,
+  rows,
   canRemove,
   focusOnMount,
   onChange,
@@ -63,6 +65,7 @@ export function SaleRowItem({
 }: {
   row: SaleRow;
   index: number;
+  rows: SaleRow[];
   canRemove: boolean;
   focusOnMount: boolean;
   onChange: (index: number, updated: SaleRow) => void;
@@ -96,6 +99,16 @@ export function SaleRowItem({
   }, [query]);
 
   const handleProductChange = async (p: Product) => {
+    // Check if the product is already selected in another row
+    const isDuplicate = rows.some(
+      (r, i) => r.productId === p.id && i !== index,
+    );
+
+    if (isDuplicate) {
+      showErrorToast(`${p.name} is already in this invoice.`);
+      setProductOpen(false);
+      return;
+    }
     const convs = sortedConversions(p.unitConversions);
     const defaultUnit = convs[0]?.unitName ?? p.baseUnit;
     const defaultConvQty = getConvQty(defaultUnit, convs);

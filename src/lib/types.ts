@@ -201,6 +201,34 @@ export type Meta = {
     totalLineItems: number;
 };
 
+// ----------------------------------For Supplier Payments --------------------------------------
+export type SupplierPayment = {
+    id: string;
+    supplierId: string;
+    supplier: { id: string; name: string; email: string; phone: string };
+    paymentDate: string;
+    paymentMode: string;
+    checkNo: string | null;
+    transactionId: string | null;
+    reference: string | null;
+    remarks: string | null;
+    amount: number;
+    createdAt: string;
+};
+
+// ---------------------------------For Receiptd--------------------------------------------------
+export type Receipt = {
+    id: string;
+    customerId: string;
+    customer: { id: string; name: string; email: string; phone: string };
+    receiptDate: string;
+    paymentMode: string;
+    amount: number;
+    remarks: string | null;
+    createdAt: string;
+};
+
+
 
 /** Returns top-level categories with their children nested inside */
 export function buildCategoryTree(flat: Category[]): Category[] {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
 import { Plus, ArrowLeft, Loader2 } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -20,7 +19,9 @@ import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
 
 import { CustomerCombobox } from "@/components/sales/new/CustomerCombobox";
 import { SaleRowItem } from "@/components/sales/new/SaleRowItem";
-import { Customer, SaleRow } from "@/lib/types";
+import { Customer, SaleDetail, SaleRow } from "@/lib/types";
+import { BatchInvoicePrinter } from "@/components/sales/BatchInvoicePrinter";
+import { useReactToPrint } from "react-to-print";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 
 // -- Duplicate Types for Self-Containment --
@@ -47,7 +48,10 @@ export default function NewSalePage() {
   );
   const [rows, setRows] = useState<SaleRow[]>([emptyRow()]);
   const [newestIndex, setNewestIndex] = useState<number | null>(null);
-
+  // -------------------------For Printing-----------------------
+  const invoicePrintRef = useRef(null);
+  const [printData, setPrintData] = useState<SaleDetail[]>();
+  const [printing, setPrinting] = useState(false);
   useEffect(() => {
     axios
       .get(`${BASE}/customer`)
@@ -75,7 +79,7 @@ export default function NewSalePage() {
       (r) => r.productId && r.qtyBase > 0 && parseFloat(r.sellPrice) > 0,
     );
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (reRoute: boolean) => {
     if (!isValid) return;
     setSubmitting(true);
     try {
@@ -101,13 +105,39 @@ export default function NewSalePage() {
             )?.conversionQty ?? 1),
         })),
       };
-      await axios.post(`${BASE}/sales`, payload);
+      const res = await axios.post(`${BASE}/sales`, payload);
+      const newSale = res.data.data.sale;
+      setPrintData([newSale]);
       showSuccessToast("Invoice created");
-      router.push("/sales");
+      if (reRoute) {
+        router.push("/sales");
+      }
+      return newSale;
     } catch {
       showErrorToast("Failed to create invoice");
+      return null;
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handelPrintTrigger = useReactToPrint({
+    contentRef: invoicePrintRef,
+    documentTitle: "Batch_Invoices",
+  });
+
+  const handelPrintAndSubmit = async () => {
+    const result = await handleSubmit(false);
+
+    if (result) {
+      setPrinting(true);
+      // Standard best practice: timeout to allow the Printer component to render the new printData [cite: 95, 96]
+      setTimeout(() => {
+        handelPrintTrigger();
+        setPrinting(false);
+        // Redirect manually AFTER the print dialog has been triggered
+        router.push("/sales");
+      }, 800);
     }
   };
 
@@ -176,6 +206,7 @@ export default function NewSalePage() {
                           key={idx}
                           row={row}
                           index={idx}
+                          rows={rows}
                           canRemove={rows.length > 1}
                           focusOnMount={idx === newestIndex}
                           onChange={handleRowChange}
@@ -204,18 +235,32 @@ export default function NewSalePage() {
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit(true)}
                   disabled={!isValid || submitting}
                 >
                   {submitting && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}{" "}
-                  Create Invoice
+                  Save
+                </Button>
+                <Button
+                  onClick={handelPrintAndSubmit}
+                  disabled={!isValid || submitting || printing}
+                >
+                  {submitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}{" "}
+                  Save And Print
                 </Button>
               </div>
             </>
           )}
         </div>
+        <BatchInvoicePrinter
+          ref={invoicePrintRef}
+          invoices={printData || []}
+          companyName="YOUR COMPANY"
+        />
       </SidebarInset>
     </SidebarProvider>
   );

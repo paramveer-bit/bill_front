@@ -16,6 +16,7 @@ export function ReceiptTable({
   tableLoading,
   onDelete,
   isDeleting,
+  deleteTarget,
 }: any) {
   if (isLoading) {
     return (
@@ -77,9 +78,9 @@ export function ReceiptTable({
                     variant="ghost"
                     size="icon"
                     onClick={() => onDelete(receipt.id)}
-                    disabled={isDeleting === receipt.id}
+                    disabled={isDeleting && deleteTarget === receipt.id}
                   >
-                    {isDeleting === receipt.id ? (
+                    {isDeleting && deleteTarget === receipt.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Trash2 className="h-4 w-4 text-destructive" />

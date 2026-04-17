@@ -10,11 +10,12 @@ import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
 import { useDateFilters } from "@/hooks/use-date-filters";
 import { Meta } from "@/lib/types";
 // Sub-components
+import { Receipt } from "@/lib/types";
 import { ReceiptStats } from "@/components/receipts/ReceiptStats";
 import { ReceiptTable } from "@/components/receipts/ReceiptTable";
 import { AppPagination } from "@/components/AppPagination";
 import { DataTableFilters } from "@/components/Filters";
-
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import AddNewReceipt from "@/components/receipts/New_edit";
 import axios from "axios";
 
@@ -25,13 +26,14 @@ export default function ReceiptsPage() {
   const { dateFilter, setDateFilter, customRange, setCustomRange, dateParams } =
     useDateFilters("month");
 
-  const [receipts, setReceipts] = useState([]);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<boolean>(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
   const fetchReceipts = useCallback(
@@ -71,17 +73,18 @@ export default function ReceiptsPage() {
     setPage(1);
   }, [searchTerm, dateFilter]);
 
-  const handleDeleteReceipt = async (id: number) => {
-    if (!confirm("Are you sure?")) return;
-    setIsDeleting(id);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await fetch(`${BASE}/receipts/${id}`, { method: "DELETE" });
+      await fetch(`${BASE}/receipts/${deleteTarget}`, { method: "DELETE" });
       showSuccessToast("Receipt deleted successfully!");
       fetchReceipts();
     } catch (err) {
       showErrorToast("Failed to delete receipt");
     } finally {
-      setIsDeleting(null);
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -132,8 +135,9 @@ export default function ReceiptsPage() {
                 receipts={receipts}
                 isLoading={isLoading}
                 tableLoading={tableLoading}
-                onDelete={handleDeleteReceipt}
-                isDeleting={isDeleting}
+                onDelete={setDeleteTarget}
+                isDeleting={deleting}
+                deleteTarget={deleteTarget}
               />
 
               {meta && meta.totalPages > 1 && (
@@ -149,6 +153,25 @@ export default function ReceiptsPage() {
             </CardContent>
           </Card>
         </div>
+        <DeleteConfirmDialog
+          open={deleteTarget !== null}
+          title="Receipt"
+          message=<>
+            Are you sure you want to delete payment entry of{" "}
+            <span className="font-semibold text-foreground">
+              {receipts.map((p) =>
+                p.id === deleteTarget
+                  ? p.customer.name + " of amount: " + p.amount ||
+                    "this payment"
+                  : null,
+              )}
+            </span>
+            ? This cannot be undone.
+          </>
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
       </SidebarInset>
     </SidebarProvider>
   );

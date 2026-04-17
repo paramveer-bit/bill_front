@@ -99,8 +99,10 @@ function New_edit({
       ...formData,
       amount: parseFloat(formData.amount),
       remarks: formData.remarks || null,
+      receiptDate: new Date(formData.receiptDate).toISOString(),
     };
     try {
+      console.log("Submitting new receipt with payload:", payload);
       const res = await axios.post(`${BASE}/receipts`, payload);
       fetchReceipts();
       showSuccessToast("Receipt created successfully!");

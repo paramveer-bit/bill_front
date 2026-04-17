@@ -21,7 +21,9 @@ export function PaymentRow({ payment, onDelete, isDeleting }: PaymentRowProps) {
 
   return (
     <TableRow>
-      <TableCell className="font-medium">{payment.supplier.name}</TableCell>
+      <TableCell className="font-medium pl-4">
+        {payment.supplier.name}
+      </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -44,7 +46,7 @@ export function PaymentRow({ payment, onDelete, isDeleting }: PaymentRowProps) {
       <TableCell className="text-right font-semibold">
         ₹{payment.amount.toLocaleString("en-IN")}
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="text-right pr-6">
         <Button
           variant="ghost"
           size="icon"

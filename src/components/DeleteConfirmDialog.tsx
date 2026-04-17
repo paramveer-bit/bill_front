@@ -1,5 +1,6 @@
 "use client";
 
+import { ReactNode } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -12,18 +13,20 @@ import { Button } from "@/components/ui/button";
 
 interface DeleteConfirmDialogProps {
   open: boolean;
-  invoiceNo: string;
   onConfirm: () => void;
   onCancel: () => void;
   loading: boolean;
+  message?: ReactNode;
+  title: string;
 }
 
 export function DeleteConfirmDialog({
   open,
-  invoiceNo,
   onConfirm,
   onCancel,
   loading,
+  message,
+  title,
 }: DeleteConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
@@ -31,16 +34,17 @@ export function DeleteConfirmDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            Delete Invoice
+            Delete {title || "Item"}
           </DialogTitle>
         </DialogHeader>
         <div className="py-2 text-sm text-muted-foreground">
-          Are you sure you want to delete{" "}
+          {message}
+          {/* Are you sure you want to delete{" "}
           <span className="font-semibold text-foreground">{invoiceNo}</span>?
           This will reverse all stock and balance changes. This cannot be
-          undone.
+          undone. */}
         </div>
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2 sm:gap-2">
           <Button
             variant="outline"
             onClick={onCancel}

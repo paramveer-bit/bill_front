@@ -27,7 +27,8 @@ import { AppPagination } from "@/components/AppPagination";
 import { PaymentSummary } from "@/components/supplier/Payment_cards";
 import { PaymentRow } from "@/components/supplier/Payment_table_row";
 import AddPaymentDialog from "@/components/supplier/AddPaymentDialog";
-
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { SupplierPayment, Meta } from "@/lib/types";
 const BASE = `${process.env.NEXT_PUBLIC_BASEURL}/supplier`;
 const PAGE_SIZE = 20;
 
@@ -36,14 +37,18 @@ export default function SupplierPaymentsPage() {
     useDateFilters("month");
 
   // --- States ---
-  const [payments, setPayments] = useState<any[]>([]);
-  const [meta, setMeta] = useState<any>(null);
+  const [payments, setPayments] = useState<SupplierPayment[]>([]);
+  const [meta, setMeta] = useState<Meta | null>(null);
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deletingTarget, setDeletingTarget] = useState<{
+    supplierId: string;
+    paymentId: string;
+  } | null>(null);
+  const [deleting, setDeleting] = useState<boolean>(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,17 +103,19 @@ export default function SupplierPaymentsPage() {
     fetchPayments(loading);
   }, [fetchPayments]);
 
-  const handleDelete = async (sId: string, pId: string) => {
-    if (!confirm("Are you sure?")) return;
-    setIsDeleting(pId);
+  const handleDelete = async () => {
+    if (deletingTarget === null) return;
+    setDeleting(true);
+    const { supplierId: sId, paymentId: pId } = deletingTarget;
     try {
-      await axios.delete(`${BASE}/${sId}/payment/${pId}`);
+      await axios.delete(`${BASE}/${sId}/payments/${pId}`);
       showSuccessToast("Payment deleted");
       fetchPayments();
     } catch (err) {
       showErrorToast("Delete failed");
     } finally {
-      setIsDeleting(null);
+      setDeletingTarget(null);
+      setDeleting(false);
     }
   };
 
@@ -167,19 +174,19 @@ export default function SupplierPaymentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Supplier</TableHead>
+                    <TableHead className="pl-4">Supplier</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Mode</TableHead>
                     <TableHead>Ref</TableHead>
                     <TableHead>Remarks</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right pr-6">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-10">
+                      <TableCell colSpan={7} className="text-center py-10 pl-4">
                         <Loader2 className="mx-auto animate-spin" />
                       </TableCell>
                     </TableRow>
@@ -197,8 +204,15 @@ export default function SupplierPaymentsPage() {
                       <PaymentRow
                         key={p.id}
                         payment={p}
-                        onDelete={handleDelete}
-                        isDeleting={isDeleting === p.id}
+                        onDelete={() =>
+                          setDeletingTarget({
+                            supplierId: p.supplier.id,
+                            paymentId: p.id,
+                          })
+                        }
+                        isDeleting={
+                          deleting && deletingTarget?.paymentId === p.id
+                        }
                       />
                     ))
                   )}
@@ -218,6 +232,25 @@ export default function SupplierPaymentsPage() {
             </CardContent>
           </Card>
         </div>
+        <DeleteConfirmDialog
+          open={deletingTarget !== null}
+          title="Payment"
+          message=<>
+            Are you sure you want to delete payment entry of{" "}
+            <span className="font-semibold text-foreground">
+              {payments.map((p) =>
+                p.id === deletingTarget?.paymentId
+                  ? p.supplier.name + " of amount: " + p.amount ||
+                    "this payment"
+                  : null,
+              )}
+            </span>
+            ? This cannot be undone.
+          </>
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingTarget(null)}
+          loading={deleting}
+        />
       </SidebarInset>
     </SidebarProvider>
   );

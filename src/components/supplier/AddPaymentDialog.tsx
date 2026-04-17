@@ -111,12 +111,13 @@ export default function AddPaymentDialog({
       amount: parseFloat(formData.amount),
       reference: formData.reference || null,
       remarks: formData.remarks || null,
+      paymentDate: new Date(formData.paymentDate).toISOString(),
     };
 
     try {
       // Endpoint logic: /supplier/:id/payment
       await axios.post(
-        `${BASE}/supplier/${formData.supplierId}/payment`,
+        `${BASE}/supplier/${formData.supplierId}/payments`,
         payload,
       );
       fetchPayments();

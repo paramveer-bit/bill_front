@@ -47,7 +47,7 @@ import View from "@/components/purchase/View";
 import { fmt, fmtDate } from "@/lib/helpers/functions";
 import { PurchaseListItem, PurchaseDetail, Meta } from "@/lib/types";
 import { SaleStatCards } from "@/components/sales/SaleStatCards";
-
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const PAGE_SIZE = 20;
 
@@ -148,8 +148,9 @@ export default function PurchasePage() {
     if (!deletingPurchase) return;
     try {
       setDeletingId(deletingPurchase.id);
-      await axios.delete(`${BASE}/purchases/${deletingPurchase.id}`);
-      setDeletingPurchase(null);
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+
+      // await axios.delete(`${BASE}/purchases/${deletingPurchase.id}`);
       fetchPurchases();
     } catch (err) {
       const error = err as AxiosError<any>;
@@ -158,6 +159,7 @@ export default function PurchasePage() {
       );
     } finally {
       setDeletingId(null);
+      setDeletingPurchase(null);
     }
   };
 
@@ -332,37 +334,27 @@ export default function PurchasePage() {
           setViewingPurchase={setViewingPurchase}
           setDetailLoading={setDetailLoading}
         />
-
-        <AlertDialog
-          open={!!deletingPurchase}
-          onOpenChange={(o) => !o && setDeletingPurchase(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete this purchase?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Purchase{" "}
-                <span className="font-semibold">
-                  {deletingPurchase?.invoiceNo ?? "record"}
-                </span>{" "}
-                from{" "}
-                <span className="font-semibold">
-                  {deletingPurchase?.supplier.name}
-                </span>{" "}
-                will be deleted.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeleteConfirmDialog
+          open={deletingPurchase !== null}
+          title="Payment"
+          message=<>
+            Are you sure you want to delete payment entry of{" "}
+            <span className="font-semibold text-foreground">
+              {purchases.map((p) =>
+                p.id === deletingPurchase?.id
+                  ? p.supplier.name + " of amount: " + p.totalAmount ||
+                    "this payment"
+                  : null,
+              )}
+            </span>
+            ? This cannot be undone.
+          </>
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingPurchase(null)}
+          loading={
+            deletingPurchase !== null && deletingId === deletingPurchase.id
+          }
+        />
       </SidebarInset>
     </SidebarProvider>
   );
