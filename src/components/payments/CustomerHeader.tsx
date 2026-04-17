@@ -7,10 +7,9 @@ import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   customer: Customer;
-  onExport: () => void;
 }
 
-export function CustomerHeader({ customer, onExport }: HeaderProps) {
+export function CustomerHeader({ customer }: HeaderProps) {
   const router = useRouter();
 
   return (
@@ -45,12 +44,6 @@ export function CustomerHeader({ customer, onExport }: HeaderProps) {
           className="gap-2"
         >
           <Printer className="h-4 w-4" /> Print
-        </Button>
-        <Button
-          onClick={onExport}
-          className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <Download className="h-4 w-4" /> Export CSV
         </Button>
       </div>
     </div>

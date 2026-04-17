@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { LedgerEntry } from "@/lib/types";
 import { fmt, fmtDate } from "@/lib/helpers/functions";
-
+import { format, parseISO } from "date-fns";
 export function LedgerTable({
   entries,
   balanceBF,
@@ -19,10 +19,13 @@ export function LedgerTable({
   startDate?: string;
 }) {
   return (
-    <Table>
-      <TableHeader className="bg-slate-900 text-white">
+    <Table className="print:text-[11px]">
+      <TableHeader className="bg-slate-900 text-white print:text[11px]">
         <TableRow className="border-0 hover:bg-slate-900">
-          <TableHead className="text-white font-semibold w-24">Date</TableHead>
+          <TableHead className="text-white font-semibold w-28 pl-4">
+            Date
+          </TableHead>
+          <TableHead className="text-white font-semibold w-24">Type</TableHead>
           <TableHead className="text-white font-semibold">
             Description
           </TableHead>
@@ -35,13 +38,18 @@ export function LedgerTable({
           <TableHead className="text-right text-white font-semibold w-32">
             Balance
           </TableHead>
+          <TableHead className="text-right text-white font-semibold w-32 pr-5">
+            Remarks
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
+        {/*------------------------- Opening Balance Row ----------------------------------*/}
         <TableRow className="bg-slate-50 border-0 hover:bg-slate-100">
-          <TableCell className="font-medium text-slate-900">
-            {startDate ? fmtDate(startDate) : "--"}
+          <TableCell className="font-medium text-slate-900 pl-3">
+            {startDate ? format(parseISO(startDate), "dd'-'MM'-'yy") : "--"}
           </TableCell>
+          <TableCell className="text-right" />
           <TableCell>
             <div className="text-sm font-semibold text-slate-900">
               Opening balance
@@ -53,45 +61,46 @@ export function LedgerTable({
           <TableCell className="text-right font-bold text-slate-900">
             {fmt(balanceBF)}
           </TableCell>
+          <TableCell className="text-right pr-5" />
         </TableRow>
+
         {entries.map((entry) => (
           <TableRow
             key={entry.id}
-            className="border-b border-slate-200 hover:bg-slate-50"
+            className="border-b border-slate-200 hover:bg-slate-50 print:text-[11px]"
           >
-            <TableCell className="text-slate-700 text-sm font-medium">
-              {fmtDate(entry.date)}
+            <TableCell className="text-slate-700 text-sm font-medium pl-3 print:text-[11px]">
+              {format(parseISO(entry.date), "dd'-'MM'-'yy")}
             </TableCell>
+            <TableCell>{entry.type}</TableCell>
             <TableCell>
-              <span
-                className={`text-xs font-bold px-2 py-1 rounded-full ${entry.type === "SALE" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
-              >
-                {entry.type}
-              </span>
-              <div className="text-sm text-slate-900 font-medium mt-1">
+              <div className="text-sm text-slate-900 font-medium mt-1 print:text-[11px]">
                 {entry.desc}
               </div>
             </TableCell>
-            <TableCell className="text-right font-mono text-sm">
+            <TableCell className="text-right font-mono text-sm print:text-[11px]">
               {entry.debit > 0 ? (
-                <span className="text-emerald-700 font-semibold">
+                <span className="text-emerald-700 font-semibold print:text-[11px]">
                   {fmt(entry.debit)}
                 </span>
               ) : (
-                "—"
+                ""
               )}
             </TableCell>
-            <TableCell className="text-right font-mono text-sm">
+            <TableCell className="text-right font-mono text-sm print:text-[11px]">
               {entry.credit > 0 ? (
-                <span className="text-blue-700 font-semibold">
+                <span className="text-blue-700 font-semibold print:text-[11px]">
                   {fmt(entry.credit)}
                 </span>
               ) : (
-                "—"
+                ""
               )}
             </TableCell>
-            <TableCell className="text-right font-mono font-bold text-slate-900">
+            <TableCell className="text-right font-mono font-bold text-slate-900 print:text-[11px]">
               {fmt(entry.runningBalance)}
+            </TableCell>
+            <TableCell className="text-right font-mono font-bold text-slate-900 pr-5 print:text-[11px]">
+              {entry.remarks}
             </TableCell>
           </TableRow>
         ))}

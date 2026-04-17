@@ -1,4 +1,10 @@
+"use client";
+
 import { useState, useEffect, useCallback } from "react";
+import axios, { AxiosError } from "axios";
+import { Plus, Loader2 } from "lucide-react";
+
+// UI Components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,7 +16,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -18,79 +24,84 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+// Helpers & Types
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
-import { Customer } from "@/lib/types";
-import axios, { AxiosError } from "axios";
+
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 
 const paymentModes = [
   "Cash",
-  "Credit Card",
-  "Debit Card",
+  "Bank Transfer",
   "UPI",
-  "Net Banking",
   "Cheque",
-  "Discount",
+  "Credit Note",
+  "Other",
 ];
 
-interface Add_new_props {
-  fetchReceipts: any;
+interface AddPaymentProps {
+  fetchPayments: () => void;
   isDialogOpen: boolean;
   setIsDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-function New_edit({
-  fetchReceipts,
+export default function AddPaymentDialog({
+  fetchPayments,
   isDialogOpen,
   setIsDialogOpen,
-}: Add_new_props) {
+}: AddPaymentProps) {
   const [formData, setFormData] = useState({
-    customerId: "",
+    supplierId: "",
     amount: "",
     paymentMode: "Cash",
-    receiptDate: new Date().toISOString().split("T")[0],
+    paymentDate: new Date().toISOString().split("T")[0],
+    reference: "",
     remarks: "",
   });
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchCustomers = useCallback(async () => {
-    setIsLoadingCustomers(true);
+  const fetchSuppliers = useCallback(async () => {
+    setIsLoadingSuppliers(true);
     try {
-      const res = await axios.get(`${BASE}/customer`);
-      setCustomers(res.data.data || []);
+      const res = await axios.get(`${BASE}/supplier`);
+      setSuppliers(res.data.data || []);
     } catch (err) {
       const error = err as AxiosError<any>;
       showErrorToast(
-        error.response?.data?.message || "Failed to load customers",
+        error.response?.data?.message || "Failed to load suppliers",
       );
     } finally {
-      setIsLoadingCustomers(false);
+      setIsLoadingSuppliers(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+    if (isDialogOpen) {
+      fetchSuppliers();
+    }
+  }, [isDialogOpen, fetchSuppliers]);
 
   const resetForm = () => {
     setFormData({
-      customerId: "",
+      supplierId: "",
       amount: "",
       paymentMode: "Cash",
-      receiptDate: new Date().toISOString().split("T")[0],
+      paymentDate: new Date().toISOString().split("T")[0],
+      reference: "",
       remarks: "",
     });
   };
 
-  const handleAddReceipt = async () => {
+  const handleAddPayment = async () => {
     if (
-      !formData.customerId ||
+      !formData.supplierId ||
       !formData.amount ||
       parseFloat(formData.amount) <= 0
     ) {
-      showErrorToast("Please check customer selection and amount");
+      showErrorToast("Please select a supplier and enter a valid amount");
       return;
     }
 
@@ -98,17 +109,25 @@ function New_edit({
     const payload = {
       ...formData,
       amount: parseFloat(formData.amount),
+      reference: formData.reference || null,
       remarks: formData.remarks || null,
     };
+
     try {
-      const res = await axios.post(`${BASE}/receipts`, payload);
-      fetchReceipts();
-      showSuccessToast("Receipt created successfully!");
+      // Endpoint logic: /supplier/:id/payment
+      await axios.post(
+        `${BASE}/supplier/${formData.supplierId}/payment`,
+        payload,
+      );
+      fetchPayments();
+      showSuccessToast("Payment recorded successfully!");
       setIsDialogOpen(false);
+      resetForm();
     } catch (err) {
       const error = err as AxiosError<any>;
-
-      showErrorToast(error.response?.data?.message || "Failed to Add Receipt");
+      showErrorToast(
+        error.response?.data?.message || "Failed to record payment",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -118,47 +137,66 @@ function New_edit({
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
         <Button onClick={resetForm}>
-          <Plus className="mr-2 h-4 w-4" /> Add Receipt
+          <Plus className="mr-2 h-4 w-4" /> Record Payment
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Payment Receipt</DialogTitle>
+          <DialogTitle>Record Supplier Payment</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          {/* Supplier Selection */}
           <div className="space-y-2">
-            <Label>Customer</Label>
+            <Label>Supplier</Label>
             <Select
-              value={formData.customerId}
-              onValueChange={(v) => setFormData({ ...formData, customerId: v })}
+              value={formData.supplierId}
+              onValueChange={(v) => setFormData({ ...formData, supplierId: v })}
             >
               <SelectTrigger>
                 <SelectValue
                   placeholder={
-                    isLoadingCustomers ? "Loading..." : "Select customer"
+                    isLoadingSuppliers ? "Loading..." : "Select supplier"
                   }
                 />
               </SelectTrigger>
               <SelectContent>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
+                {suppliers.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>Amount (₹)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={formData.amount}
-              onChange={(e) =>
-                setFormData({ ...formData, amount: e.target.value })
-              }
-            />
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Amount */}
+            <div className="space-y-2">
+              <Label>Amount (₹)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={formData.amount}
+                onChange={(e) =>
+                  setFormData({ ...formData, amount: e.target.value })
+                }
+              />
+            </div>
+            {/* Date */}
+            <div className="space-y-2">
+              <Label>Payment Date</Label>
+              <Input
+                type="date"
+                value={formData.paymentDate}
+                onChange={(e) =>
+                  setFormData({ ...formData, paymentDate: e.target.value })
+                }
+              />
+            </div>
           </div>
+
+          {/* Payment Mode */}
           <div className="space-y-2">
             <Label>Payment Mode</Label>
             <Select
@@ -179,22 +217,24 @@ function New_edit({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Reference */}
           <div className="space-y-2">
-            <Label>Receipt Date</Label>
+            <Label>Reference</Label>
             <Input
-              type="date"
-              value={formData.receiptDate}
+              placeholder="Cheque No / Transaction ID"
+              value={formData.reference}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  receiptDate: e.target.value,
-                })
+                setFormData({ ...formData, reference: e.target.value })
               }
             />
           </div>
+
+          {/* Remarks */}
           <div className="space-y-2">
             <Label>Remarks</Label>
-            <Input
+            <Textarea
+              placeholder="Optional notes..."
               value={formData.remarks}
               onChange={(e) =>
                 setFormData({ ...formData, remarks: e.target.value })
@@ -206,16 +246,12 @@ function New_edit({
           <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleAddReceipt} disabled={isSubmitting}>
-            {isSubmitting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}{" "}
-            Add Receipt
+          <Button onClick={handleAddPayment} disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Payment
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-export default New_edit;

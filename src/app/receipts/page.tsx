@@ -115,7 +115,7 @@ export default function ReceiptsPage() {
               <DataTableFilters
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
-                searchPlaceholder="Search customer or reference"
+                searchPlaceholder="Search customer or remarks"
                 dateFilter={dateFilter}
                 onDateFilterChange={(v: any) => {
                   setDateFilter(v);

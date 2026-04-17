@@ -1,17 +1,17 @@
 "use client";
-
-import { useEffect, useState, useMemo, useCallback } from "react"; // Added useCallback
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
-import { format } from "date-fns";
+
+// UI Components
 import { Card, CardContent } from "@/components/ui/card";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
 // Types & Helpers
-import { Customer, LedgerEntry, Meta } from "@/lib/types"; // Added Meta type
+import { Customer, LedgerEntry, Meta } from "@/lib/types";
 import { useDateFilters } from "@/hooks/use-date-filters";
-import { AppPagination } from "@/components/AppPagination"; // Import Pagination
+import { AppPagination } from "@/components/AppPagination";
 
 // Sub-components
 import { CustomerHeader } from "@/components/payments/CustomerHeader";
@@ -19,8 +19,10 @@ import { LedgerMetrics } from "@/components/payments/LedgerMetrics";
 import { DataTableFilters } from "@/components/Filters";
 import { LedgerTable } from "@/components/payments/LedgerTable";
 
+// Reusable Print View
+import { fmtDate } from "@/lib/helpers/functions";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
-const PAGE_SIZE = 20; // Define page size
+const PAGE_SIZE = 20;
 
 export default function CustomerLedgerPage() {
   const { id } = useParams();
@@ -30,14 +32,13 @@ export default function CustomerLedgerPage() {
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
-  const [meta, setMeta] = useState<Meta | null>(null); // Added Meta state
+  const [meta, setMeta] = useState<Meta | null>(null);
   const [balanceBF, setBalanceBF] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [tableLoading, setTableLoading] = useState(false); // Added table loading state
+  const [tableLoading, setTableLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
 
-  // Memoized fetch function to handle pagination and filters
   const fetchData = useCallback(
     async (isInitial = false) => {
       if (dateFilter === "custom" && (!customRange.start || !customRange.end))
@@ -61,9 +62,9 @@ export default function CustomerLedgerPage() {
         setCustomer(custRes.data.data);
         setEntries(ledgerRes.data.data.ledger || []);
         setBalanceBF(ledgerRes.data.data.balanceBF || 0);
-        setMeta(ledgerRes.data.data.meta); // Set meta from backend
+        setMeta(ledgerRes.data.data.meta);
       } catch (error) {
-        console.error("Failed to fetch ledger");
+        console.error("Failed to fetch ledger", error);
       } finally {
         setIsLoading(false);
         setTableLoading(false);
@@ -76,8 +77,6 @@ export default function CustomerLedgerPage() {
     fetchData(isLoading);
   }, [fetchData]);
 
-  // If you want server-side searching, you'd add a debounce here like in PurchasePage.
-  // Otherwise, this filteredEntries remains for client-side filtering of the current page.
   const filteredEntries = useMemo(() => {
     return entries.filter(
       (e) =>
@@ -88,36 +87,6 @@ export default function CustomerLedgerPage() {
 
   const totalDebit = filteredEntries.reduce((sum, e) => sum + e.debit, 0);
   const totalCredit = filteredEntries.reduce((sum, e) => sum + e.credit, 0);
-
-  const handleExport = () => {
-    if (!customer) return;
-    try {
-      let csvContent = "CUSTOMER LEDGER STATEMENT\n\n";
-      csvContent += `Customer: ${customer.name}\n`;
-      csvContent += `GST: ${customer.gstNumber}\n`;
-      csvContent += `Location: ${customer.town}\n`;
-      csvContent += `Period: ${format(new Date(dateParams?.startDate || new Date()), "dd MMM yyyy")} - ${format(new Date(dateParams?.endDate || new Date()), "dd MMM yyyy")}\n\n`;
-
-      csvContent += "Date,Description,Type,Debit,Credit,Balance\n";
-      csvContent += `${format(new Date(dateParams?.startDate || new Date()), "dd/MM/yyyy")},Opening Balance (B/F),OPENING,0,0,${balanceBF}\n`;
-
-      filteredEntries.forEach((entry) => {
-        csvContent += `${format(new Date(entry.date), "dd/MM/yyyy")},${entry.desc},${entry.type},${entry.debit},${entry.credit},${entry.runningBalance}\n`;
-      });
-
-      csvContent += `\nTotal for Period,,,${totalDebit},${totalCredit},${customer.balance}\n`;
-
-      const element = document.createElement("a");
-      const file = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      element.href = URL.createObjectURL(file);
-      element.download = `${customer.name}_ledger_${format(new Date(), "dd-MMM-yyyy")}.csv`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-    } catch (error) {
-      console.error("Export failed:", error);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -131,35 +100,38 @@ export default function CustomerLedgerPage() {
   }
 
   if (!customer)
-    return (
-      <div className="p-8 text-center text-red-600">Customer not found.</div>
-    );
+    return <div className="p-8 text-center">Customer not found.</div>;
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-slate-100/50 min-h-screen print:p-0 print:bg-white">
-          <CustomerHeader customer={customer} onExport={handleExport} />
+        <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
+          {/* Header Section (Always Visible) */}
+          <CustomerHeader customer={customer} />
 
-          <LedgerMetrics
-            totalDebit={totalDebit}
-            totalCredit={totalCredit}
-            balance={customer.balance}
-            startDate={dateParams?.startDate}
-            endDate={dateParams?.endDate}
-          />
+          {/* HIDDEN DURING PRINT (Metric Cards) */}
+          <div className="print:hidden">
+            <LedgerMetrics
+              totalDebit={totalDebit}
+              totalCredit={totalCredit}
+              balance={customer.balance}
+              startDate={dateParams?.startDate}
+              endDate={dateParams?.endDate}
+            />
+          </div>
 
+          {/* HIDDEN DURING PRINT (Filter Controls) */}
           <Card className="border-0 shadow-sm bg-white print:hidden">
             <CardContent className="pt-6">
               <DataTableFilters
                 searchTerm={searchQuery}
                 onSearchChange={setSearchQuery}
-                searchPlaceholder="Search description or type..."
+                searchPlaceholder="Search entries..."
                 dateFilter={dateFilter}
                 onDateFilterChange={(v: any) => {
                   setDateFilter(v);
-                  setPage(1); // Reset to page 1 on filter change
+                  setPage(1);
                 }}
                 customRange={customRange}
                 onCustomRangeChange={setCustomRange}
@@ -168,22 +140,46 @@ export default function CustomerLedgerPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm overflow-hidden">
+          {/* Table Container (Print Friendly Layout) */}
+          <Card className="border-0 shadow-sm overflow-hidden print:shadow-none print:border-0 ">
+            {/* Show an extra header only when browser prints (Ctrl+P) */}
+            <div className="hidden print:block p-4 border-b border-black mb-4">
+              <h1 className="text-xl font-bold uppercase">
+                Statement of Account: {customer.name}
+              </h1>
+
+              {/* Mobile and Address section */}
+              <div className="text-sm mt-1">
+                <p>
+                  <strong>Mobile:</strong> {customer.phone || "N/A"}
+                </p>
+                <p>
+                  <strong>Address:</strong>{" "}
+                  {customer.address || "No address provided"}
+                </p>
+              </div>
+
+              <p className="text-xs italic text-zinc-600 mt-2">
+                Period: {fmtDate(dateParams?.startDate || "")} to{" "}
+                {fmtDate(dateParams?.endDate || "")}
+              </p>
+            </div>
+
             <div className="relative">
               {tableLoading && (
-                <div className="absolute inset-0 bg-background/60 z-10 flex items-center justify-center">
+                <div className="absolute inset-0 bg-background/60 z-10 flex items-center justify-center print:hidden">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               )}
+
               <LedgerTable
                 entries={filteredEntries}
                 balanceBF={balanceBF}
                 startDate={dateParams?.startDate}
               />
 
-              {/* Pagination added here */}
               {meta && (
-                <div className="p-4 border-t bg-white">
+                <div className="p-4 border-t bg-white print:hidden">
                   <AppPagination
                     page={page}
                     totalPages={meta.totalPages}

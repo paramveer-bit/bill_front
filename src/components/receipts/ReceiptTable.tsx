@@ -39,7 +39,7 @@ export function ReceiptTable({
             <TableHead className="pl-4">Customer</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Mode</TableHead>
-            <TableHead>Reference</TableHead>
+            <TableHead>Remarks</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="text-right pr-4">Actions</TableHead>
           </TableRow>
@@ -67,7 +67,7 @@ export function ReceiptTable({
                   </span>
                 </TableCell>
                 <TableCell className="font-mono text-sm">
-                  {receipt.reference || "—"}
+                  {receipt.remarks || "—"}
                 </TableCell>
                 <TableCell className="text-right font-bold">
                   {fmt(receipt.amount)}

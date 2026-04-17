@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
-import { Wallet, Plus, Loader2 } from "lucide-react";
+import { Wallet, Loader2 } from "lucide-react";
 
 // UI Components
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -18,42 +17,38 @@ import {
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
-// Shared Helpers, Hooks & Components
+// Shared Helpers & Hooks
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
 import { useDateFilters } from "@/hooks/use-date-filters";
 import { DataTableFilters } from "@/components/Filters";
-// Note: Assuming AppPagination exists and is preferred for consistency
 import { AppPagination } from "@/components/AppPagination";
 
-// Supplier Specific Components
+// Supplier Components
 import { PaymentSummary } from "@/components/supplier/Payment_cards";
 import { PaymentRow } from "@/components/supplier/Payment_table_row";
+import AddPaymentDialog from "@/components/supplier/AddPaymentDialog";
 
 const BASE = `${process.env.NEXT_PUBLIC_BASEURL}/supplier`;
 const PAGE_SIZE = 20;
 
 export default function SupplierPaymentsPage() {
-  // --- Centralized Date State (Same as Sales) ---
   const { dateFilter, setDateFilter, customRange, setCustomRange, dateParams } =
     useDateFilters("month");
 
-  // --- Data State ---
+  // --- States ---
   const [payments, setPayments] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [meta, setMeta] = useState<any>(null);
-
-  // --- UI State ---
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [selectedSupplier, setSelectedSupplier] = useState("");
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Search Debouncing ─────────────────────────────────────────────────────
+  // Search Debounce Logic
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -65,17 +60,6 @@ export default function SupplierPaymentsPage() {
     };
   }, [searchTerm]);
 
-  // ── Fetch Suppliers ───────────────────────────────────────────────────────
-  const fetchSuppliers = useCallback(async () => {
-    try {
-      const { data } = await axios.get(BASE);
-      setSuppliers(data.data || []);
-    } catch (err) {
-      showErrorToast("Failed to load suppliers");
-    }
-  }, []);
-
-  // ── Fetch Payments (Centralized Logic) ────────────────────────────────────
   const fetchPayments = useCallback(
     async (isInitial = false) => {
       if (dateFilter === "custom" && (!customRange.start || !customRange.end))
@@ -90,15 +74,13 @@ export default function SupplierPaymentsPage() {
           limit: PAGE_SIZE,
           ...dateParams,
           ...(debouncedSearch && { search: debouncedSearch }),
-          ...(selectedSupplier && { supplierId: selectedSupplier }),
         };
 
         const { data } = await axios.get(`${BASE}/payments/getAll`, { params });
-
-        // Support both array response and paginated meta response
         const records = Array.isArray(data.data)
           ? data.data
           : data.data.payments || [];
+
         setPayments(records);
         if (data.data.meta) setMeta(data.data.meta);
       } catch (err) {
@@ -109,25 +91,13 @@ export default function SupplierPaymentsPage() {
         setTableLoading(false);
       }
     },
-    [
-      debouncedSearch,
-      dateParams,
-      dateFilter,
-      customRange,
-      selectedSupplier,
-      page,
-    ],
+    [debouncedSearch, dateParams, dateFilter, customRange, page],
   );
-
-  useEffect(() => {
-    fetchSuppliers();
-  }, [fetchSuppliers]);
 
   useEffect(() => {
     fetchPayments(loading);
   }, [fetchPayments]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleDelete = async (sId: string, pId: string) => {
     if (!confirm("Are you sure?")) return;
     setIsDeleting(pId);
@@ -142,9 +112,7 @@ export default function SupplierPaymentsPage() {
     }
   };
 
-  const total = Array.isArray(payments)
-    ? payments.reduce((acc, curr) => acc + Number(curr.amount), 0)
-    : 0;
+  const total = payments.reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   return (
     <SidebarProvider>
@@ -157,12 +125,16 @@ export default function SupplierPaymentsPage() {
                 <Wallet className="h-8 w-8 text-primary" /> Supplier Payments
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Manage outgoing supplier settlement history
+                Manage outgoing settlement history
               </p>
             </div>
-            <Button size="lg">
-              <Plus className="mr-2 h-5 w-5" /> Record Payment
-            </Button>
+
+            {/* New Dialog Component */}
+            <AddPaymentDialog
+              fetchPayments={() => fetchPayments()}
+              isDialogOpen={isDialogOpen}
+              setIsDialogOpen={setIsDialogOpen}
+            />
           </div>
 
           <PaymentSummary
@@ -176,7 +148,6 @@ export default function SupplierPaymentsPage() {
             endDate={customRange.end ? new Date(customRange.end) : undefined}
           />
 
-          {/* Replaced PaymentFilters with centralized DataTableFilters */}
           <DataTableFilters
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -189,10 +160,7 @@ export default function SupplierPaymentsPage() {
             customRange={customRange}
             onCustomRangeChange={setCustomRange}
             onRefresh={() => fetchPayments()}
-          >
-            {/* Optional: Add Supplier Dropdown as a child if DataTableFilters supports children, 
-                otherwise you can add it to the component as a specific prop */}
-          </DataTableFilters>
+          />
 
           <Card className="overflow-hidden">
             <CardContent className="p-0">

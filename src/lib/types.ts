@@ -20,6 +20,7 @@ export interface LedgerEntry {
     debit: number;
     credit: number;
     runningBalance: number;
+    remarks: string
 }
 
 
