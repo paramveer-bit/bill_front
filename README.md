@@ -38,4 +38,15 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 ### -----------------------------------------------------------------------------------------------------
 
 Delete Customer option only for admin
+
 # bill_front
+
+signup
+login
+verify email
+
+api.ts
+authcontext.ts
+useApp.ts
+authguard.tsx
+latour.tsx
