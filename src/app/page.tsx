@@ -1,14 +1,7 @@
-import { DashboardContent } from "@/components/dashboard-content";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+import React from "react";
 
-export default function Home() {
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <DashboardContent />
-      </SidebarInset>
-    </SidebarProvider>
-  );
+function page() {
+  return <div>page</div>;
 }
+
+export default page;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, X, RefreshCw } from "lucide-react";
+import { Search, X, RefreshCw, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -28,6 +28,8 @@ interface DataTableFiltersProps {
 
   // Actions
   onRefresh?: () => void;
+  newTrigger?: () => void;
+  buttonTitle?: string;
 }
 
 export function DataTableFilters({
@@ -39,6 +41,8 @@ export function DataTableFilters({
   customRange,
   onCustomRangeChange,
   onRefresh,
+  newTrigger,
+  buttonTitle = "New",
 }: DataTableFiltersProps) {
   return (
     <div className="flex flex-col gap-3">
@@ -88,6 +92,10 @@ export function DataTableFilters({
             </Button>
           )}
         </div>
+        <Button onClick={newTrigger} className="ml-auto">
+          <Plus className="mr-2 h-4 w-4" />
+          {buttonTitle}
+        </Button>
       </div>
 
       {/* Custom Range Inputs */}

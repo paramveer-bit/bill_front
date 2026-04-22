@@ -65,7 +65,7 @@ export function SaleTable({
   onSelectAll,
 }: saleTableProps) {
   return (
-    <div className="overflow-x-auto relative pl-2">
+    <div className="overflow-x-auto relative">
       {tableLoading && (
         <div className="absolute inset-0 bg-background/60 z-10 flex items-center justify-center">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />

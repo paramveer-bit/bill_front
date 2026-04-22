@@ -118,11 +118,11 @@ function New_edit({
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogTrigger asChild>
+      {/* <DialogTrigger asChild>
         <Button onClick={resetForm}>
           <Plus className="mr-2 h-4 w-4" /> Add Receipt
         </Button>
-      </DialogTrigger>
+      </DialogTrigger> */}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Payment Receipt</DialogTitle>

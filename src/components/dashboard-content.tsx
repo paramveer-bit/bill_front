@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Package, Users, ShoppingCart, TrendingUp } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { UserProfileButton } from "./UserProfile";
+import Header from "./Header";
 
 export function DashboardContent() {
   const stats = [
@@ -45,12 +47,7 @@ export function DashboardContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="flex h-16 items-center gap-4 px-6">
-          <SidebarTrigger />
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-        </div>
-      </header>
+      <Header title="Dashboard" description="" />
 
       {/* Main Content */}
       <div className="p-6">

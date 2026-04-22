@@ -20,7 +20,7 @@ import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 30; // seconds
-import api from "@/lib/api";
+import { useApi } from "@/hooks/useApi";
 export default function VerifyOtpPage() {
   const { id: userId } = useParams<{ id: string }>();
   const router = useRouter();
@@ -31,7 +31,7 @@ export default function VerifyOtpPage() {
   const [isResending, setIsResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [shake, setShake] = useState(false);
-
+  const api = useApi();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Start cooldown timer

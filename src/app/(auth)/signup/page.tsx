@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import api from "@/lib/api";
+import { useApi } from "@/hooks/useApi";
 const signupSchema = z
   .object({
     name: z.string().min(2, "Name must be at least 2 characters"),
@@ -41,7 +41,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const router = useRouter();
-
+  const api = useApi();
   const {
     register,
     handleSubmit,

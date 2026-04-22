@@ -7,7 +7,7 @@ import { Loader2, Plus, Printer } from "lucide-react";
 
 // UI Components
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
@@ -27,6 +27,7 @@ import { SaleDetailDialog } from "@/components/sales/SaleDetailDialog";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { BatchInvoicePrinter } from "@/components/sales/BatchInvoicePrinter";
 import { useReactToPrint } from "react-to-print";
+import Header from "@/components/Header";
 
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const PAGE_SIZE = 20;
@@ -205,133 +206,121 @@ export default function SalesPage() {
     }
   };
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <div className="p-6 space-y-5 max-w-[1400px]">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Sales & Invoices
-              </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {meta
-                  ? `${meta.total.toLocaleString()} total invoices`
-                  : "Loading…"}
-              </p>
-            </div>
-            <Button
-              onClick={() => router.push("/sales/new")}
-              className="shrink-0"
-            >
-              <Plus className="mr-2 h-4 w-4" /> New Invoice
-            </Button>
-          </div>
-          {/* -------------------------Summary Cards------------------------ */}
-          {!loading && meta && (
-            <SaleStatCards
-              summary={{
-                purchases: meta.total,
-                spend: meta.totalSpend,
-                totalLine: meta.totalLineItems,
-              }}
-              option={"sale"}
-            />
-          )}
-          {/*-----------------------------Filters---------------------------  */}
-          <DataTableFilters
-            searchTerm={search}
-            onSearchChange={setSearch}
-            searchPlaceholder="Search invoice or customer"
-            dateFilter={dateFilter}
-            onDateFilterChange={(v: any) => {
-              setDateFilter(v);
-              setPage(1);
+    <div className="min-h-screen bg-background">
+      <Header
+        title="Sales & Invoices"
+        description="Track and manage your inventory sales and customer invoices"
+      />
+      <div className="p-6 space-y-5 max-w-[1400px]">
+        {/* -------------------------Summary Cards------------------------ */}
+        {!loading && meta && (
+          <SaleStatCards
+            summary={{
+              purchases: meta.total,
+              spend: meta.totalSpend,
+              totalLine: meta.totalLineItems,
             }}
-            customRange={customRange}
-            onCustomRangeChange={setCustomRange}
-            onRefresh={() => fetchSales()}
+            option={"sale"}
           />
-          {/* ----------------------------Table------------------------------ */}
-          <Card className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex justify-between mb-4 px-5">
-                <h1 className="text-2xl font-bold">Sales Invoices</h1>
-                {selectedIds.length > 0 && (
-                  <Button onClick={onBatchPrint} disabled={isPreparingBatch}>
-                    {isPreparingBatch ? (
-                      <Loader2 className="animate-spin mr-2" />
-                    ) : (
-                      <Printer className="mr-2" />
-                    )}
-                    Print Selected ({selectedIds.length})
-                  </Button>
+        )}
+        {/*-----------------------------Filters---------------------------  */}
+
+        {/* ----------------------------Table------------------------------ */}
+        <Card className="overflow-hidden gap-0">
+          <CardHeader className=" px-4 border-b py-0 mb-0 gap-0">
+            {/* --------------------------------- CENTRALIZED FILTERS ------------------------------ */}
+            <DataTableFilters
+              searchTerm={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Search invoice or customer"
+              dateFilter={dateFilter}
+              onDateFilterChange={(v: any) => {
+                setDateFilter(v);
+                setPage(1);
+              }}
+              customRange={customRange}
+              onCustomRangeChange={setCustomRange}
+              onRefresh={() => fetchSales()}
+              newTrigger={() => router.push("/sales/new")}
+              buttonTitle="New Sale"
+            />
+          </CardHeader>
+          <CardContent className="p-0">
+            {/* <div className="flex justify-between mb-4 px-5"> */}
+            {selectedIds.length > 0 && (
+              <Button onClick={onBatchPrint} disabled={isPreparingBatch}>
+                {isPreparingBatch ? (
+                  <Loader2 className="animate-spin mr-2" />
+                ) : (
+                  <Printer className="mr-2" />
                 )}
-              </div>
-              <SaleTable
-                sales={sales}
-                loading={loading}
+                Print Selected ({selectedIds.length})
+              </Button>
+            )}
+            {/* </div> */}
+            <SaleTable
+              sales={sales}
+              loading={loading}
+              tableLoading={tableLoading}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              onView={setViewId}
+              onDelete={setDeleteTarget}
+              // onPrint={handlePrintInvoice} // Add this prop
+              selectedIds={selectedIds}
+              onSelectRow={(id: string) =>
+                setSelectedIds((prev) =>
+                  prev.includes(id)
+                    ? prev.filter((i) => i !== id)
+                    : [...prev, id],
+                )
+              }
+              onSelectAll={(ids: string[]) => setSelectedIds(ids)}
+            />
+
+            {/* --- PERFECTLY CONSISTENT PAGINATION --- */}
+            {meta && (
+              <AppPagination
+                page={page}
+                totalPages={meta.totalPages}
+                totalItems={meta.total}
+                pageSize={PAGE_SIZE}
+                onPageChange={(p) => setPage(p)}
                 tableLoading={tableLoading}
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                onSort={handleSort}
-                onView={setViewId}
-                onDelete={setDeleteTarget}
-                // onPrint={handlePrintInvoice} // Add this prop
-                selectedIds={selectedIds}
-                onSelectRow={(id: string) =>
-                  setSelectedIds((prev) =>
-                    prev.includes(id)
-                      ? prev.filter((i) => i !== id)
-                      : [...prev, id],
-                  )
-                }
-                onSelectAll={(ids: string[]) => setSelectedIds(ids)}
               />
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-              {/* --- PERFECTLY CONSISTENT PAGINATION --- */}
-              {meta && (
-                <AppPagination
-                  page={page}
-                  totalPages={meta.totalPages}
-                  totalItems={meta.total}
-                  pageSize={PAGE_SIZE}
-                  onPageChange={(p) => setPage(p)}
-                  tableLoading={tableLoading}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <SaleDetailDialog
-          saleId={viewId}
-          open={viewId !== null}
-          onClose={() => setViewId(null)}
-        />
-        <DeleteConfirmDialog
-          open={deleteTarget !== null}
-          title="Invoice"
-          message={
-            <>
-              Are you sure you want to delete{" "}
-              <span className="font-semibold text-foreground">
-                {deleteTarget?.invoiceNo}
-              </span>
-              ? This will reverse all stock and balance changes. This cannot be
-              undone.
-            </>
-          }
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-          loading={deleting}
-        />
-        <BatchInvoicePrinter
-          ref={batchPrintRef}
-          invoices={batchData}
-          companyName="YOUR COMPANY"
-        />
-      </SidebarInset>
-    </SidebarProvider>
+      <SaleDetailDialog
+        saleId={viewId}
+        open={viewId !== null}
+        onClose={() => setViewId(null)}
+      />
+      <DeleteConfirmDialog
+        open={deleteTarget !== null}
+        title="Invoice"
+        message={
+          <>
+            Are you sure you want to delete{" "}
+            <span className="font-semibold text-foreground">
+              {deleteTarget?.invoiceNo}
+            </span>
+            ? This will reverse all stock and balance changes. This cannot be
+            undone.
+          </>
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
+      />
+      <BatchInvoicePrinter
+        ref={batchPrintRef}
+        invoices={batchData}
+        companyName="YOUR COMPANY"
+      />
+    </div>
   );
 }

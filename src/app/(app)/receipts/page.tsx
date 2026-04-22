@@ -18,6 +18,7 @@ import { DataTableFilters } from "@/components/Filters";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import AddNewReceipt from "@/components/receipts/New_edit";
 import axios from "axios";
+import Header from "@/components/Header";
 
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const PAGE_SIZE = 30;
@@ -89,90 +90,92 @@ export default function ReceiptsPage() {
   };
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Payment Receipts</h1>
-              <p className="text-muted-foreground">
-                Track and manage customer payments
-              </p>
-            </div>
-            <AddNewReceipt
-              fetchReceipts={fetchReceipts}
-              isDialogOpen={isAddDialogOpen}
-              setIsDialogOpen={setIsAddDialogOpen}
-            />
-          </div>
-
-          <ReceiptStats
-            totalCount={meta?.total || 0}
-            totalAmount={meta?.totalSpend || 0}
-            dateFilter={dateFilter}
-          />
-
-          <Card>
-            <CardHeader className="pb-3 pt-4 px-4">
-              <DataTableFilters
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                searchPlaceholder="Search customer or remarks"
-                dateFilter={dateFilter}
-                onDateFilterChange={(v: any) => {
-                  setDateFilter(v);
-                  setPage(1);
-                }}
-                customRange={customRange}
-                onCustomRangeChange={setCustomRange}
-                onRefresh={() => fetchReceipts()}
-              />
-            </CardHeader>
-
-            <CardContent className="p-0">
-              <ReceiptTable
-                receipts={receipts}
-                isLoading={isLoading}
-                tableLoading={tableLoading}
-                onDelete={setDeleteTarget}
-                isDeleting={deleting}
-                deleteTarget={deleteTarget}
-              />
-
-              {meta && meta.totalPages > 1 && (
-                <AppPagination
-                  page={page}
-                  totalPages={meta.totalPages}
-                  totalItems={meta.total}
-                  pageSize={PAGE_SIZE}
-                  onPageChange={setPage}
-                  tableLoading={tableLoading}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-        <DeleteConfirmDialog
-          open={deleteTarget !== null}
-          title="Receipt"
-          message=<>
-            Are you sure you want to delete payment entry of{" "}
-            <span className="font-semibold text-foreground">
-              {receipts.map((p) =>
-                p.id === deleteTarget
-                  ? p.customer.name + " of amount: " + p.amount ||
-                    "this payment"
-                  : null,
-              )}
-            </span>
-            ? This cannot be undone.
-          </>
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-          loading={deleting}
+    <div className="min-h-screen bg-background">
+      <Header
+        title="Payment Receipts"
+        description="Track and manage customer payments"
+      />
+      <div className="p-6 space-y-6">
+        {/* <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Payment Receipts</h1>
+            <p className="text-muted-foreground">
+              Track and manage customer payments
+            </p>
+          </div> */}
+        <AddNewReceipt
+          fetchReceipts={fetchReceipts}
+          isDialogOpen={isAddDialogOpen}
+          setIsDialogOpen={setIsAddDialogOpen}
         />
-      </SidebarInset>
-    </SidebarProvider>
+        {/* </div> */}
+
+        <ReceiptStats
+          totalCount={meta?.total || 0}
+          totalAmount={meta?.totalSpend || 0}
+          dateFilter={dateFilter}
+        />
+
+        <Card className="overflow-hidden gap-0">
+          <CardHeader className=" px-4 border-b py-0 mb-0 gap-0">
+            <DataTableFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              searchPlaceholder="Search customer or remarks"
+              dateFilter={dateFilter}
+              onDateFilterChange={(v: any) => {
+                setDateFilter(v);
+                setPage(1);
+              }}
+              customRange={customRange}
+              onCustomRangeChange={setCustomRange}
+              onRefresh={() => fetchReceipts()}
+              newTrigger={() => setIsAddDialogOpen(true)}
+              buttonTitle="Add Receipt"
+            />
+          </CardHeader>
+
+          <CardContent className="p-0">
+            <ReceiptTable
+              receipts={receipts}
+              isLoading={isLoading}
+              tableLoading={tableLoading}
+              onDelete={setDeleteTarget}
+              isDeleting={deleting}
+              deleteTarget={deleteTarget}
+            />
+
+            {meta && meta.totalPages > 1 && (
+              <AppPagination
+                page={page}
+                totalPages={meta.totalPages}
+                totalItems={meta.total}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+                tableLoading={tableLoading}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      <DeleteConfirmDialog
+        open={deleteTarget !== null}
+        title="Receipt"
+        message=<>
+          Are you sure you want to delete payment entry of{" "}
+          <span className="font-semibold text-foreground">
+            {receipts.map((p) =>
+              p.id === deleteTarget
+                ? p.customer.name + " of amount: " + p.amount || "this payment"
+                : null,
+            )}
+          </span>
+          ? This cannot be undone.
+        </>
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
+      />
+    </div>
   );
 }

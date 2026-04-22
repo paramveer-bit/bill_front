@@ -136,11 +136,11 @@ export default function AddPaymentDialog({
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogTrigger asChild>
+      {/* <DialogTrigger asChild>
         <Button onClick={resetForm}>
           <Plus className="mr-2 h-4 w-4" /> Record Payment
         </Button>
-      </DialogTrigger>
+      </DialogTrigger> */}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Record Supplier Payment</DialogTitle>

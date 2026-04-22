@@ -9,7 +9,7 @@ import React, {
   useRef,
 } from "react";
 import axios from "axios";
-import { setTokenGetter, setRefreshFn } from "@/lib/api";
+import api, { setTokenGetter, setRefreshFn } from "@/lib/api";
 
 export interface User {
   name: string;
@@ -97,11 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/auth/logout`,
-        {},
-        { withCredentials: true },
-      );
+      await api.post(`${BASE}/auth/logout`, {}, { withCredentials: true });
     } finally {
       setAccessToken(null);
       setUser(null);
