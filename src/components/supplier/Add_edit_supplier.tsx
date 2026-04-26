@@ -13,7 +13,7 @@ import { showErrorToast } from "@/lib/helpers/toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
+import { useApi } from "@/hooks/useApi";
 interface Add_edit_supplierProps {
   setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
   supplierToEdit?: Supplier | null;
@@ -39,7 +39,7 @@ function Add_edit_supplier({
     openingBalance: 0,
     balance: 0,
   });
-
+  const api = useApi();
   const resetForm = () => {
     setFormData({
       name: "",
@@ -54,7 +54,7 @@ function Add_edit_supplier({
   };
 
   useEffect(() => {
-    console.log("supplierToEdit changed:", supplierToEdit);
+    // console.log("supplierToEdit changed:", supplierToEdit);
     if (supplierToEdit) {
       setFormData({
         name: supplierToEdit.name,
@@ -76,18 +76,12 @@ function Add_edit_supplier({
     try {
       if (supplierToEdit) {
         // UPDATE LOGIC
-        const res = await axios.put(
-          `${process.env.NEXT_PUBLIC_BASEURL}/supplier/${supplierToEdit.id}`,
-          formData,
-        );
+        const res = await api.put(`/suppliers/${supplierToEdit.id}`, formData);
         const updated = res.data.data;
         setSuppliers(suppliers.map((s) => (s.id === updated.id ? updated : s)));
       } else {
         // CREATE LOGIC
-        const res = await axios.post(
-          `${process.env.NEXT_PUBLIC_BASEURL}/supplier`,
-          formData,
-        );
+        const res = await api.post(`/suppliers`, formData);
         setSuppliers([...suppliers, res.data.data]);
       }
       setIsDialogOpen(false);

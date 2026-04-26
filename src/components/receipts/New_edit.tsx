@@ -21,6 +21,7 @@ import {
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
 import { Customer } from "@/lib/types";
 import axios, { AxiosError } from "axios";
+import { useApi } from "@/hooks/useApi";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 
 const paymentModes = [
@@ -54,12 +55,12 @@ function New_edit({
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const api = useApi();
   const fetchCustomers = useCallback(async () => {
     setIsLoadingCustomers(true);
     try {
-      const res = await axios.get(`${BASE}/customer`);
-      setCustomers(res.data.data || []);
+      const res = await api.get(`/customers`);
+      setCustomers(res.data.data.data || []);
     } catch (err) {
       const error = err as AxiosError<any>;
       showErrorToast(
@@ -103,7 +104,7 @@ function New_edit({
     };
     try {
       console.log("Submitting new receipt with payload:", payload);
-      const res = await axios.post(`${BASE}/receipts`, payload);
+      const res = await api.post(`${BASE}/receipts`, payload);
       fetchReceipts();
       showSuccessToast("Receipt created successfully!");
       setIsDialogOpen(false);

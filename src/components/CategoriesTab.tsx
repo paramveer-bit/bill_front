@@ -39,9 +39,9 @@ import {
 import { useState } from "react";
 
 import { type Category, type Product, buildCategoryTree } from "@/lib/types";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { showErrorToast } from "@/lib/helpers/toast";
-
+import { useApi } from "@/hooks/useApi";
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface CategoriesTabProps {
@@ -70,20 +70,17 @@ export function CategoriesTab({
 
   const categoryTree = buildCategoryTree(categories);
   const topLevel = categories.filter((c) => c.parentId === null);
-
+  const api = useApi();
   // ── handlers ────────────────────────────────────────────────────────────────
 
   const handleAdd = async () => {
     try {
       console.log(form.parentId);
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_BASEURL}/categories`,
-        {
-          name: form.name,
-          description: form.description,
-          parentId: form.parentId !== "0" ? form.parentId : null,
-        },
-      );
+      const res = await api.post(`/categories`, {
+        name: form.name,
+        description: form.description,
+        parentId: form.parentId !== "0" ? form.parentId : null,
+      });
       const newCategory: Category = res.data.data;
       onCategoriesChange([...categories, newCategory]);
       setIsAddOpen(false);
@@ -98,14 +95,11 @@ export function CategoriesTab({
 
   const handleEdit = async () => {
     try {
-      const res = await axios.put(
-        `${process.env.NEXT_PUBLIC_BASEURL}/categories/${editingCategory?.id}`,
-        {
-          name: form.name,
-          description: form.description,
-          parentId: form.parentId !== "0" ? form.parentId : null,
-        },
-      );
+      const res = await api.put(`/categories/${editingCategory?.id}`, {
+        name: form.name,
+        description: form.description,
+        parentId: form.parentId !== "0" ? form.parentId : null,
+      });
       const updatedCategory: Category = res.data.data;
       onCategoriesChange(
         categories.map((c) =>
@@ -136,9 +130,7 @@ export function CategoriesTab({
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await axios.delete(
-        `${process.env.NEXT_PUBLIC_BASEURL}/categories/${id}`,
-      );
+      const res = await api.delete(`/categories/${id}`);
       const subIds = categories
         .filter((c) => c.parentId === id)
         .map((c) => c.id);

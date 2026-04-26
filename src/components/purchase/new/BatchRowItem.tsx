@@ -1,11 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import {
+  Loader2,
+  Trash2,
+  ChevronsUpDown,
+  AlertTriangle,
+  Check,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Check, ChevronsUpDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -14,84 +22,104 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandEmpty,
+} from "@/components/ui/command";
 import { PriceInput } from "./PriceInput";
+import { Product, UnitConversion } from "@/lib/types"; // Assuming these types exist in your lib
 import { showErrorToast } from "@/lib/helpers/toast";
+import { useApi } from "@/hooks/useApi";
 
-// -- Helper Logic (Moved from main page for encapsulation) --
-function getConvQty(unitName: string, conversions: any[]): number {
-  return conversions.find((c) => c.unitName === unitName)?.conversionQty ?? 1;
-}
+// -- Helpers --
+const getConvQty = (unit: string, convs: UnitConversion[]) => {
+  const found = convs.find((c) => c.unitName === unit);
+  return found ? found.conversionQty : 1;
+};
 
-function toBasePcs(
-  qtyInput: string,
-  selectedUnit: string,
-  conversions: any[],
-): number {
-  const qty = parseFloat(qtyInput) || 0;
-  return qty * getConvQty(selectedUnit, conversions);
-}
+const toBasePcs = (qty: string, unit: string, convs: UnitConversion[]) =>
+  (parseFloat(qty) || 0) * getConvQty(unit, convs);
 
-function rescalePrice(
+const sortedConversions = (convs: UnitConversion[]) =>
+  [...convs].sort((a, b) => b.conversionQty - a.conversionQty);
+
+const rescalePrice = (
   priceStr: string,
   fromUnit: string,
   toUnit: string,
-  conversions: any[],
-): string {
+  conversions: UnitConversion[],
+): string => {
   if (!priceStr) return "";
   const price = parseFloat(priceStr);
   if (isNaN(price)) return "";
   const basePrice = price / getConvQty(fromUnit, conversions);
   return (basePrice * getConvQty(toUnit, conversions)).toFixed(2);
-}
+};
 
-function toBasePrice(
+const toBasePrice = (
   priceStr: string,
   selectedUnit: string,
-  conversions: any[],
-): number | undefined {
+  conversions: UnitConversion[],
+): number | undefined => {
   if (!priceStr) return undefined;
   const price = parseFloat(priceStr);
   if (isNaN(price) || price <= 0) return undefined;
   return price / getConvQty(selectedUnit, conversions);
-}
-
-function sortedConversions(conversions: any[]) {
-  return [...conversions].sort((a, b) => b.conversionQty - a.conversionQty);
-}
+};
 
 export function BatchRowItem({
   batch,
   index,
-  products,
+  batches,
   canRemove,
   focusOnMount,
   onChange,
   onRemove,
-  batches,
 }: any) {
-  const product = products.find((p: any) => p.id === batch.productId);
+  const [productOpen, setProductOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Product[]>([]);
+  const [searching, setSearching] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const api = useApi();
+  // Reference to the currently selected product object (stored in batch or derived)
+  const product = batch.product;
   const conversions = product ? sortedConversions(product.unitConversions) : [];
   const isBaseUnit =
     !batch.selectedUnit || batch.selectedUnit === product?.baseUnit;
   const lineTotal =
     (parseFloat(batch.qtyInput) || 0) * (parseFloat(batch.unitCost) || 0);
 
-  const [productOpen, setProductOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  // 1. Debounced Search Effect (Implementation like SaleRowItem)
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await api.get(`products`, {
+          params: { search: query },
+        });
+        setResults(res.data.data.data);
+      } catch (err) {
+        console.error("Search failed", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
+  // 2. Focus on Mount logic
   useEffect(() => {
     if (focusOnMount) {
       const t = setTimeout(() => triggerRef.current?.click(), 50);
@@ -99,68 +127,55 @@ export function BatchRowItem({
     }
   }, [focusOnMount]);
 
-  const handleProductChange = (productId: string) => {
-    // Defensive check for duplicates
+  const handleProductChange = (p: Product) => {
     const isDuplicate = batches.some(
-      (b: any, i: number) => b.productId === productId && i !== index,
+      (b: any, i: number) => b.productId === p.id && i !== index,
     );
 
     if (isDuplicate) {
-      // Requires: import { showErrorToast } from "@/lib/helpers/toast";
-      showErrorToast("This product is already added to the purchase list.");
+      showErrorToast(`${p.name} is already in this purchase list.`);
       setProductOpen(false);
       return;
     }
-    const p = products.find((pr: any) => pr.id === productId);
-    const convs = p ? sortedConversions(p.unitConversions) : [];
-    const defaultUnit = convs[0]?.unitName ?? p?.baseUnit ?? "";
+
+    const convs = sortedConversions(p.unitConversions);
+    const defaultUnit = convs[0]?.unitName ?? p.baseUnit;
     const defaultConvQty = getConvQty(defaultUnit, convs);
-    setProductOpen(false);
+
     onChange(index, {
       ...batch,
-      productId,
+      productId: p.id,
+      product: p, // Store the product object in the row state
       selectedUnit: defaultUnit,
       qtyInput: "",
       qtyReceivedBase: 0,
       unitCost: "",
-      sellingPrice: p?.currentSellPrice
+      sellingPrice: p.currentSellPrice
         ? (p.currentSellPrice * defaultConvQty).toFixed(2)
         : "",
       mrp: "",
     });
+    setProductOpen(false);
   };
 
-  const handleQtyChange = (qtyInput: string) => {
+  const handleUnitChange = (newUnit: string) => {
     onChange(index, {
       ...batch,
-      qtyInput,
-      qtyReceivedBase: toBasePcs(qtyInput, batch.selectedUnit, conversions),
-    });
-  };
-
-  const handleUnitChange = (selectedUnit: string) => {
-    onChange(index, {
-      ...batch,
-      selectedUnit,
-      qtyReceivedBase: toBasePcs(batch.qtyInput, selectedUnit, conversions),
+      selectedUnit: newUnit,
+      qtyReceivedBase: toBasePcs(batch.qtyInput, newUnit, conversions),
       unitCost: rescalePrice(
         batch.unitCost,
         batch.selectedUnit,
-        selectedUnit,
+        newUnit,
         conversions,
       ),
       sellingPrice: rescalePrice(
         batch.sellingPrice,
         batch.selectedUnit,
-        selectedUnit,
+        newUnit,
         conversions,
       ),
-      mrp: rescalePrice(
-        batch.mrp,
-        batch.selectedUnit,
-        selectedUnit,
-        conversions,
-      ),
+      mrp: rescalePrice(batch.mrp, batch.selectedUnit, newUnit, conversions),
     });
   };
 
@@ -175,6 +190,7 @@ export function BatchRowItem({
   return (
     <>
       <TableRow className="h-10 align-middle border-b-0">
+        {/* Product Search Popover */}
         <TableCell className="w-[200px] py-1 align-middle">
           <Popover open={productOpen} onOpenChange={setProductOpen}>
             <PopoverTrigger asChild>
@@ -190,56 +206,69 @@ export function BatchRowItem({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[260px] p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Search..." className="h-8" />
+              <Command shouldFilter={false}>
+                <CommandInput
+                  placeholder="Search products..."
+                  value={query}
+                  onValueChange={setQuery}
+                  className="h-8"
+                />
                 <CommandList>
-                  <CommandEmpty>No product found.</CommandEmpty>
-                  <CommandGroup>
-                    {products
-                      .filter(
-                        (p: any) =>
-                          !batches.some(
-                            (b: any, i: number) =>
-                              b.productId === p.id && i !== index,
-                          ),
-                      )
-                      .map((p: any) => (
-                        <CommandItem
-                          key={p.id}
-                          onSelect={() => handleProductChange(p.id)}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-3.5 w-3.5",
-                              batch.productId === p.id
-                                ? "opacity-100"
-                                : "opacity-0",
-                            )}
-                          />
-                          <div className="flex flex-col min-w-0">
-                            <span className="truncate">{p.name}</span>
-                            {p.sku && (
-                              <span className="text-xs text-muted-foreground">
-                                {p.sku}
-                              </span>
-                            )}
-                          </div>
-                        </CommandItem>
-                      ))}
-                  </CommandGroup>
+                  {searching && (
+                    <div className="p-2 text-center text-xs text-muted-foreground">
+                      <Loader2 className="animate-spin inline mr-2 h-3 w-3" />
+                      Searching...
+                    </div>
+                  )}
+                  {!searching && results.length === 0 && query && (
+                    <CommandEmpty>No products found.</CommandEmpty>
+                  )}
+                  {results.map((p) => (
+                    <CommandItem
+                      key={p.id}
+                      onSelect={() => handleProductChange(p)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-3.5 w-3.5",
+                          batch.productId === p.id
+                            ? "opacity-100"
+                            : "opacity-0",
+                        )}
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <span className="truncate">{p.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {p.sku}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  ))}
                 </CommandList>
               </Command>
             </PopoverContent>
           </Popover>
         </TableCell>
 
+        {/* Qty & Unit */}
         <TableCell className="w-[200px] py-1 align-middle">
           <div className="flex items-center gap-2">
             <Input
               type="number"
               value={batch.qtyInput}
-              onChange={(e) => handleQtyChange(e.target.value)}
+              onChange={(e) =>
+                onChange(index, {
+                  ...batch,
+                  qtyInput: e.target.value,
+                  qtyReceivedBase: toBasePcs(
+                    e.target.value,
+                    batch.selectedUnit,
+                    conversions,
+                  ),
+                })
+              }
               className="h-8 w-20 text-sm"
+              disabled={!product}
             />
             {conversions.length > 1 ? (
               <Select
@@ -250,7 +279,7 @@ export function BatchRowItem({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {conversions.map((c: any) => (
+                  {conversions.map((c) => (
                     <SelectItem key={c.unitName} value={c.unitName}>
                       {c.unitName}{" "}
                       {c.unitName !== product?.baseUnit &&
@@ -267,33 +296,41 @@ export function BatchRowItem({
           </div>
         </TableCell>
 
+        {/* Unit Cost */}
         <TableCell className="w-[130px] py-1 align-middle">
           <PriceInput
             value={batch.unitCost}
             onChange={(v) => onChange(index, { ...batch, unitCost: v })}
+            // disabled={!product}
           />
         </TableCell>
 
+        {/* Selling Price */}
         <TableCell className="w-[130px] py-1 align-middle">
           <PriceInput
             value={batch.sellingPrice}
             onChange={(v) => onChange(index, { ...batch, sellingPrice: v })}
+            // disabled={!product}
           />
         </TableCell>
 
+        {/* MRP */}
         <TableCell className="w-[130px] py-1 align-middle">
           <PriceInput
             value={batch.mrp}
             onChange={(v) => onChange(index, { ...batch, mrp: v })}
+            // disabled={!product}
           />
         </TableCell>
 
+        {/* Line Total */}
         <TableCell className="w-[110px] py-1 align-middle text-right font-semibold text-sm">
           {lineTotal > 0
             ? `₹${lineTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
             : "—"}
         </TableCell>
 
+        {/* Actions */}
         <TableCell className="w-10 py-1 align-middle">
           {canRemove && (
             <Button
@@ -308,7 +345,7 @@ export function BatchRowItem({
         </TableCell>
       </TableRow>
 
-      {/* Sub-row for detail hints */}
+      {/* Detail Sub-Row */}
       <TableRow className="h-5 bg-muted/20 border-b border-border/60">
         <TableCell className="py-0 text-xs text-muted-foreground font-mono">
           {product?.sku ?? "No SKU"}

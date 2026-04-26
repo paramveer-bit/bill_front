@@ -7,13 +7,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { Customer } from "@/lib/types";
 import { showErrorToast } from "@/lib/helpers/toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
+import { useApi } from "@/hooks/useApi";
 interface Add_new_customerProps {
   setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
   customerToEdit?: Customer | null;
@@ -39,6 +39,7 @@ function Add_new_customer({
     balance: 0,
   });
 
+  const api = useApi();
   const resetForm = () => {
     setFormData({
       name: "",
@@ -52,7 +53,7 @@ function Add_new_customer({
   };
 
   useEffect(() => {
-    console.log("customerToEdit changed:", customerToEdit);
+    // console.log("customerToEdit changed:", customerToEdit);
     if (customerToEdit) {
       setFormData({
         name: customerToEdit.name,
@@ -72,18 +73,12 @@ function Add_new_customer({
     try {
       if (customerToEdit) {
         // UPDATE LOGIC
-        const res = await axios.put(
-          `${process.env.NEXT_PUBLIC_BASEURL}/customer/${customerToEdit.id}`,
-          formData,
-        );
+        const res = await api.put(`/customers/${customerToEdit.id}`, formData);
         const updated = res.data.data;
         setCustomers(customers.map((c) => (c.id === updated.id ? updated : c)));
       } else {
         // CREATE LOGIC
-        const res = await axios.post(
-          `${process.env.NEXT_PUBLIC_BASEURL}/customer`,
-          formData,
-        );
+        const res = await api.post(`/customers`, formData);
         setCustomers([...customers, res.data.data]);
       }
       setIsDialogOpen(false);

@@ -53,7 +53,7 @@ const stockInSelectedUnit = (
   const convQty = getConvQty(unit, convs);
   return Math.floor(stock / convQty);
 };
-
+import { useApi } from "@/hooks/useApi";
 export function SaleRowItem({
   row,
   index,
@@ -78,7 +78,7 @@ export function SaleRowItem({
   const [results, setResults] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-
+  const api = useApi();
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -87,10 +87,10 @@ export function SaleRowItem({
     const t = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await axios.get(`${BASE}/products`, {
+        const res = await api.get(`/products`, {
           params: { search: query },
         });
-        setResults(res.data.data);
+        setResults(res.data.data.data);
       } finally {
         setSearching(false);
       }
@@ -130,8 +130,9 @@ export function SaleRowItem({
     setProductOpen(false);
 
     try {
-      const res = await axios.get(`${BASE}/products/${p.id}/stock-info`);
-      const stock = res.data.data?.stockBase ?? 0;
+      const res = await api.get(`/products/${p.id}/stock-info`);
+      const stock = res.data.data?.totalStockPcs ?? 0;
+      console.log(stock);
       onChange(index, { ...update, stockBase: stock, loadingStock: false });
     } catch {
       onChange(index, { ...update, loadingStock: false });
@@ -185,6 +186,8 @@ export function SaleRowItem({
             </PopoverTrigger>
             <PopoverContent className="w-[260px] p-0" align="start">
               <Command shouldFilter={false}>
+                {" "}
+                //
                 <CommandInput
                   placeholder="Search..."
                   value={query}

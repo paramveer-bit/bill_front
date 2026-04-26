@@ -22,6 +22,7 @@ import { SaleRowItem } from "@/components/sales/new/SaleRowItem";
 import { Customer, SaleDetail, SaleRow } from "@/lib/types";
 import { BatchInvoicePrinter } from "@/components/sales/BatchInvoicePrinter";
 import { useReactToPrint } from "react-to-print";
+import { useApi } from "@/hooks/useApi";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 
 // -- Duplicate Types for Self-Containment --
@@ -48,14 +49,15 @@ export default function NewSalePage() {
   );
   const [rows, setRows] = useState<SaleRow[]>([emptyRow()]);
   const [newestIndex, setNewestIndex] = useState<number | null>(null);
+  const api = useApi();
   // -------------------------For Printing-----------------------
   const invoicePrintRef = useRef(null);
   const [printData, setPrintData] = useState<SaleDetail[]>();
   const [printing, setPrinting] = useState(false);
   useEffect(() => {
-    axios
-      .get(`${BASE}/customer`)
-      .then((res) => setCustomers(res.data.data))
+    api
+      .get(`${BASE}/customers`)
+      .then((res) => setCustomers(res.data.data.data))
       .finally(() => setLoading(false));
   }, []);
 
@@ -105,7 +107,7 @@ export default function NewSalePage() {
             )?.conversionQty ?? 1),
         })),
       };
-      const res = await axios.post(`${BASE}/sales`, payload);
+      const res = await api.post(`${BASE}/sales`, payload);
       const newSale = res.data.data.sale;
       setPrintData([newSale]);
       showSuccessToast("Invoice created");
@@ -142,126 +144,121 @@ export default function NewSalePage() {
   };
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <div className="p-6 space-y-6 max-w-7xl">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.push("/sales")}
-            >
-              <ArrowLeft />
-            </Button>
-            <h1 className="text-3xl font-bold">New Invoice</h1>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-20">
-              <Loader2 className="animate-spin inline" />
-            </div>
-          ) : (
-            <>
-              <Card>
-                <CardContent className="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <CustomerCombobox
-                    customers={customers}
-                    value={customerId}
-                    onChange={setCustomerId}
-                  />
-                  <input
-                    type="date"
-                    value={saleDate}
-                    onChange={(e) => setSaleDate(e.target.value)}
-                    className="border p-2 rounded h-10"
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex items-center justify-between flex-row">
-                  <CardTitle className="text-base">Invoice Items</CardTitle>
-                  <Button onClick={handleAddRow} size="sm" variant="outline">
-                    <Plus className="mr-2 h-4 w-4" /> Add Item
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-muted/40">
-                      <TableRow>
-                        <TableHead className="w-[240px]">Product</TableHead>
-                        <TableHead className="w-[200px]">Qty</TableHead>
-                        <TableHead className="w-[150px]">Price</TableHead>
-                        <TableHead className="w-[120px]"></TableHead>
-                        <TableHead className="w-[120px]"></TableHead>
-
-                        <TableHead className="text-right">Total</TableHead>
-                        {/* <TableHead className="w-10" /> */}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rows.map((row, idx) => (
-                        <SaleRowItem
-                          key={idx}
-                          row={row}
-                          index={idx}
-                          rows={rows}
-                          canRemove={rows.length > 1}
-                          focusOnMount={idx === newestIndex}
-                          onChange={handleRowChange}
-                          onRemove={(i: any) =>
-                            setRows((prev) =>
-                              prev.filter((_, idx) => idx !== i),
-                            )
-                          }
-                        />
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <div className="p-4 border-t flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">
-                      {rows.length} rows
-                    </p>
-                    <p className="text-2xl font-bold">
-                      ₹{totalAmount.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => router.push("/sales")}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => handleSubmit(true)}
-                  disabled={!isValid || submitting}
-                >
-                  {submitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}{" "}
-                  Save
-                </Button>
-                <Button
-                  onClick={handelPrintAndSubmit}
-                  disabled={!isValid || submitting || printing}
-                >
-                  {submitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}{" "}
-                  Save And Print
-                </Button>
-              </div>
-            </>
-          )}
+    <div className="min-h-screen bg-background p-6">
+      <div className="space-y-6 max-w-7xl">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/sales")}
+          >
+            <ArrowLeft />
+          </Button>
+          <h1 className="text-3xl font-bold">New Invoice</h1>
         </div>
-        <BatchInvoicePrinter
-          ref={invoicePrintRef}
-          invoices={printData || []}
-          companyName="YOUR COMPANY"
-        />
-      </SidebarInset>
-    </SidebarProvider>
+
+        {loading ? (
+          <div className="text-center py-20">
+            <Loader2 className="animate-spin inline" />
+          </div>
+        ) : (
+          <>
+            <Card>
+              <CardContent className="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <CustomerCombobox
+                  customers={customers}
+                  value={customerId}
+                  onChange={setCustomerId}
+                />
+                <input
+                  type="date"
+                  value={saleDate}
+                  onChange={(e) => setSaleDate(e.target.value)}
+                  className="border p-2 rounded h-10"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex items-center justify-between flex-row">
+                <CardTitle className="text-base">Invoice Items</CardTitle>
+                <Button onClick={handleAddRow} size="sm" variant="outline">
+                  <Plus className="mr-2 h-4 w-4" /> Add Item
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader className="bg-muted/40">
+                    <TableRow>
+                      <TableHead className="w-[240px]">Product</TableHead>
+                      <TableHead className="w-[200px]">Qty</TableHead>
+                      <TableHead className="w-[150px]">Price</TableHead>
+                      <TableHead className="w-[120px]"></TableHead>
+                      <TableHead className="w-[120px]"></TableHead>
+
+                      <TableHead className="text-right">Total</TableHead>
+                      {/* <TableHead className="w-10" /> */}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row, idx) => (
+                      <SaleRowItem
+                        key={idx}
+                        row={row}
+                        index={idx}
+                        rows={rows}
+                        canRemove={rows.length > 1}
+                        focusOnMount={idx === newestIndex}
+                        onChange={handleRowChange}
+                        onRemove={(i: any) =>
+                          setRows((prev) => prev.filter((_, idx) => idx !== i))
+                        }
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+                <div className="p-4 border-t flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground">
+                    {rows.length} rows
+                  </p>
+                  <p className="text-2xl font-bold">
+                    ₹{totalAmount.toLocaleString("en-IN")}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => router.push("/sales")}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => handleSubmit(true)}
+                disabled={!isValid || submitting}
+              >
+                {submitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}{" "}
+                Save
+              </Button>
+              <Button
+                onClick={handelPrintAndSubmit}
+                disabled={!isValid || submitting || printing}
+              >
+                {submitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}{" "}
+                Save And Print
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+      <BatchInvoicePrinter
+        ref={invoicePrintRef}
+        invoices={printData || []}
+        companyName="YOUR COMPANY"
+      />
+    </div>
   );
 }

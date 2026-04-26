@@ -28,7 +28,7 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { BatchInvoicePrinter } from "@/components/sales/BatchInvoicePrinter";
 import { useReactToPrint } from "react-to-print";
 import Header from "@/components/Header";
-
+import { useApi } from "@/hooks/useApi";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const PAGE_SIZE = 20;
 
@@ -51,7 +51,11 @@ export default function SalesPage() {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortField>("saleDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-
+  const [summary, setSummary] = useState({
+    sales: 0,
+    spend: 0,
+    totalLine: 0,
+  });
   // ---------------------------------- For Prinitng Invoices--------------------------------------
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [batchData, setBatchData] = useState<SaleDetail[]>([]);
@@ -63,7 +67,7 @@ export default function SalesPage() {
   const [deleting, setDeleting] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const api = useApi();
   // ── Search Debouncing ─────────────────────────────────────────────────────
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -94,9 +98,14 @@ export default function SalesPage() {
           ...(debouncedSearch && { search: debouncedSearch }),
         };
 
-        const res = await axios.get(`${BASE}/sales`, { params });
+        const res = await api.get(`/sales`, { params });
         setSales(res.data.data.sales);
         setMeta(res.data.data.meta); // Now using meta from backend
+        setSummary({
+          sales: res.data.data.summary.totalSales, // Total sales count from meta
+          spend: res.data.data.summary.totalSpend, // Total spend from meta
+          totalLine: res.data.data.summary.totalLineItems, // Total line items from meta
+        });
       } catch (err) {
         const error = err as AxiosError<any>;
         showErrorToast(error.response?.data?.message || "Failed to load sales");
@@ -139,7 +148,7 @@ export default function SalesPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await axios.delete(`${BASE}/sales/${deleteTarget.id}`);
+      await api.delete(`/sales/${deleteTarget.id}`);
       showSuccessToast(`Invoice ${deleteTarget.invoiceNo} deleted`);
       setDeleteTarget(null);
       fetchSales();
@@ -213,12 +222,12 @@ export default function SalesPage() {
       />
       <div className="p-6 space-y-5 max-w-[1400px]">
         {/* -------------------------Summary Cards------------------------ */}
-        {!loading && meta && (
+        {!loading && summary && (
           <SaleStatCards
             summary={{
-              purchases: meta.total,
-              spend: meta.totalSpend,
-              totalLine: meta.totalLineItems,
+              purchases: summary.sales,
+              spend: summary.spend,
+              totalLine: summary.totalLine,
             }}
             option={"sale"}
           />

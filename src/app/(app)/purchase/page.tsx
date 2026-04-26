@@ -51,10 +51,10 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import Header from "@/components/Header";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const PAGE_SIZE = 20;
-
+import { useApi } from "@/hooks/useApi";
 export default function PurchasePage() {
   const router = useRouter();
-
+  const api = useApi();
   // --- Centralized Date State ---
   const { dateFilter, setDateFilter, customRange, setCustomRange, dateParams } =
     useDateFilters("month");
@@ -62,6 +62,11 @@ export default function PurchasePage() {
   const [purchases, setPurchases] = useState<PurchaseListItem[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState({
+    purchases: 0,
+    spend: 0,
+    totalLine: 0,
+  });
   const [tableLoading, setTableLoading] = useState(false);
 
   const [searchInput, setSearchInput] = useState("");
@@ -97,11 +102,17 @@ export default function PurchasePage() {
 
         if (search) params.set("search", search);
 
-        const res = await axios.get(`${BASE}/purchases?${params}`);
+        const res = await api.get(`/purchases?${params}`);
         setPurchases(res.data.data.purchases);
         setMeta(res.data.data.meta);
+        setSummary({
+          purchases: res.data.data.summary.purchaseCount,
+          spend: res.data.data.summary.totalSpend,
+          totalLine: res.data.data.summary.totalLineItems,
+        });
       } catch (err) {
         const error = err as AxiosError<any>;
+        console.log("Error fetching purchases:", error);
         showErrorToast(
           error.response?.data?.message || "Failed to load purchases",
         );
@@ -188,9 +199,9 @@ export default function PurchasePage() {
         {!loading && meta && (
           <SaleStatCards
             summary={{
-              purchases: meta.total,
-              spend: meta.totalSpend,
-              totalLine: meta.totalLineItems,
+              purchases: summary.purchases,
+              spend: summary.spend,
+              totalLine: summary.totalLine,
             }}
             option={"purchase"}
           />

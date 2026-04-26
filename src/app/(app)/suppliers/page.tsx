@@ -22,19 +22,16 @@ import {
   ArrowUpRight,
   FileText,
 } from "lucide-react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import axios from "axios";
 import { showErrorToast } from "@/lib/helpers/toast";
 import { type Supplier } from "@/lib/types";
 import Add_edit_supplier from "@/components/supplier/Add_edit_supplier";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
-const BASE = process.env.NEXT_PUBLIC_BASEURL;
+import { useApi } from "@/hooks/useApi";
 
 export default function SuppliersPage() {
   const router = useRouter();
-
+  const api = useApi();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
@@ -46,8 +43,8 @@ export default function SuppliersPage() {
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const res = await axios.get(`${BASE}/supplier`);
-        setSuppliers(res.data.data);
+        const res = await api.get(`/suppliers`);
+        setSuppliers(res.data.data.data);
       } catch (error) {
         showErrorToast("Error while fetching suppliers data");
       }

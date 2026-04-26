@@ -27,7 +27,7 @@ import {
 
 // Helpers & Types
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
-
+import { useApi } from "@/hooks/useApi";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 
 const paymentModes = [
@@ -62,12 +62,12 @@ export default function AddPaymentDialog({
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const api = useApi();
   const fetchSuppliers = useCallback(async () => {
     setIsLoadingSuppliers(true);
     try {
-      const res = await axios.get(`${BASE}/supplier`);
-      setSuppliers(res.data.data || []);
+      const res = await api.get(`${BASE}/suppliers`);
+      setSuppliers(res.data.data.data || []);
     } catch (err) {
       const error = err as AxiosError<any>;
       showErrorToast(
@@ -116,10 +116,10 @@ export default function AddPaymentDialog({
 
     try {
       // Endpoint logic: /supplier/:id/payment
-      await axios.post(
-        `${BASE}/supplier/${formData.supplierId}/payments`,
-        payload,
-      );
+      await api.post(`/supplier-payments/`, {
+        ...payload,
+        supplierId: formData.supplierId,
+      });
       fetchPayments();
       showSuccessToast("Payment recorded successfully!");
       setIsDialogOpen(false);

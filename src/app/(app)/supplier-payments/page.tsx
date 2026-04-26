@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import axios from "axios";
 import { Wallet, Loader2 } from "lucide-react";
 
 // UI Components
@@ -30,6 +29,7 @@ import AddPaymentDialog from "@/components/supplier/AddPaymentDialog";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { SupplierPayment, Meta } from "@/lib/types";
 import Header from "@/components/Header";
+import { useApi } from "@/hooks/useApi";
 const BASE = `${process.env.NEXT_PUBLIC_BASEURL}/supplier`;
 const PAGE_SIZE = 20;
 
@@ -51,9 +51,12 @@ export default function SupplierPaymentsPage() {
   } | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
+  const [summary, setSummary] = useState({
+    totalAmount: 0,
+    totalCount: 0,
+  });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const api = useApi();
   // Search Debounce Logic
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -82,13 +85,14 @@ export default function SupplierPaymentsPage() {
           ...(debouncedSearch && { search: debouncedSearch }),
         };
 
-        const { data } = await axios.get(`${BASE}/payments/getAll`, { params });
-        const records = Array.isArray(data.data)
-          ? data.data
-          : data.data.payments || [];
+        const res = await api.get(`/supplier-payments`, { params });
 
-        setPayments(records);
-        if (data.data.meta) setMeta(data.data.meta);
+        setPayments(res.data.data.payments);
+        if (res.data.data.meta) setMeta(res.data.data.meta);
+        setSummary({
+          totalAmount: res.data.data.summary.totalAmount || 0,
+          totalCount: res.data.data.summary.totalCount || 0,
+        });
       } catch (err) {
         showErrorToast("Failed to load payments");
         setPayments([]);
@@ -109,7 +113,7 @@ export default function SupplierPaymentsPage() {
     setDeleting(true);
     const { supplierId: sId, paymentId: pId } = deletingTarget;
     try {
-      await axios.delete(`${BASE}/${sId}/payments/${pId}`);
+      await api.delete(`/supplier-payments/${pId}`);
       showSuccessToast("Payment deleted");
       fetchPayments();
     } catch (err) {
@@ -147,8 +151,8 @@ export default function SupplierPaymentsPage() {
           setIsDialogOpen={setIsDialogOpen}
         />
         <PaymentSummary
-          totalAmount={total}
-          count={payments.length}
+          totalAmount={summary.totalAmount}
+          count={summary.totalCount}
           thisMonthAmount={total}
           dateFilter={dateFilter}
           startDate={

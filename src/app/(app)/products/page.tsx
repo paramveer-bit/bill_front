@@ -1,17 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductsTab } from "@/components/product/ProductTab";
 import { CategoriesTab } from "@/components/CategoriesTab";
 import { type Category, type Product } from "@/lib/types";
 import axios, { AxiosError } from "axios";
 import { showErrorToast } from "@/lib/helpers/toast";
-import { Loader2 } from "lucide-react";
 import Header from "@/components/Header";
-
+import { useApi } from "@/hooks/useApi";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 
 export default function ProductsPage() {
@@ -19,14 +16,14 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
-
+  const api = useApi();
   // ── fetch helpers (exported so child tabs can call refetch) ──────────────────
 
   const fetchCategories = async () => {
     try {
       setLoadingCategories(true);
-      const res = await axios.get(`${BASE}/categories`);
-      setCategories(res.data.data);
+      const res = await api.get(`${BASE}/categories?flat=true`);
+      setCategories(res.data.data.data);
     } catch (err) {
       const error = err as AxiosError<any>;
       showErrorToast(
@@ -41,8 +38,8 @@ export default function ProductsPage() {
   const fetchProducts = async () => {
     try {
       setLoadingProducts(true);
-      const res = await axios.get(`${BASE}/products`);
-      setProducts(res.data.data);
+      const res = await api.get(`${BASE}/products`);
+      setProducts(res.data.data.data);
     } catch (err) {
       const error = err as AxiosError<any>;
       showErrorToast(

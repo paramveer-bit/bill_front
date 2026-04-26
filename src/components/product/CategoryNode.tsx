@@ -4,11 +4,9 @@ import { useState } from "react";
 import { Folder, FolderOpen, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Category, type Product } from "@/lib/types";
-import { ProductItem } from "./ProductItem";
-
+import ProductList from "./ProductList";
 interface CategoryNodeProps {
   category: Category;
-  productsByCategory: Record<string, Product[]>;
   onEdit: (p: Product) => void;
   onDelete: (id: string) => void;
   deletingId: string | null;
@@ -17,7 +15,6 @@ interface CategoryNodeProps {
 
 export function CategoryNode({
   category,
-  productsByCategory,
   onEdit,
   onDelete,
   deletingId,
@@ -26,8 +23,7 @@ export function CategoryNode({
   const [isOpen, setIsOpen] = useState(false);
   const isRoot = level === 0;
   const hasChildren = category.children && category.children.length > 0;
-  const categoryProducts = productsByCategory[category.id] || [];
-  const hasContent = hasChildren || categoryProducts.length > 0;
+  const hasContent = hasChildren || true;
 
   return (
     <div
@@ -84,7 +80,8 @@ export function CategoryNode({
             </span>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                {categoryProducts.length} Products
+                {/* {categoryProducts.length}  */}
+                10 Products
               </span>
               {hasChildren && (
                 <>
@@ -122,26 +119,18 @@ export function CategoryNode({
             <CategoryNode
               key={child.id}
               category={child}
-              productsByCategory={productsByCategory}
               onEdit={onEdit}
               onDelete={onDelete}
               deletingId={deletingId}
               level={level + 1}
             />
           ))}
-          {categoryProducts.length > 0 && (
-            <div className="space-y-2 pt-1">
-              {categoryProducts.map((p) => (
-                <ProductItem
-                  key={p.id}
-                  product={p}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  deletingId={deletingId}
-                />
-              ))}
-            </div>
-          )}
+          <ProductList
+            categoryId={category.id}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            deletingId={deletingId}
+          />
         </div>
       )}
     </div>

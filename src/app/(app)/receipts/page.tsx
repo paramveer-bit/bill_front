@@ -19,7 +19,7 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import AddNewReceipt from "@/components/receipts/New_edit";
 import axios from "axios";
 import Header from "@/components/Header";
-
+import { useApi } from "@/hooks/useApi";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const PAGE_SIZE = 30;
 
@@ -29,6 +29,10 @@ export default function ReceiptsPage() {
 
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
+  const [summary, setSummary] = useState({
+    totalReceived: 0,
+    receiptsCount: 0,
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +40,7 @@ export default function ReceiptsPage() {
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-
+  const api = useApi();
   const fetchReceipts = useCallback(
     async (isInitial = false) => {
       if (dateFilter === "custom" && (!customRange.start || !customRange.end))
@@ -53,9 +57,13 @@ export default function ReceiptsPage() {
         });
         if (searchTerm) params.append("search", searchTerm);
 
-        const res = await axios.get(`${BASE}/receipts?${params.toString()}`);
+        const res = await api.get(`/receipts?${params.toString()}`);
         setReceipts(res.data.data.receipts || []);
         setMeta(res.data.data.meta);
+        setSummary({
+          totalReceived: res.data.data.summary.totalReceived || 0,
+          receiptsCount: res.data.data.summary.receiptsCount || 0,
+        });
       } catch (err) {
         showErrorToast("Failed to load receipts");
       } finally {
@@ -78,7 +86,7 @@ export default function ReceiptsPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await fetch(`${BASE}/receipts/${deleteTarget}`, { method: "DELETE" });
+      await api.delete(`/receipts/${deleteTarget}`);
       showSuccessToast("Receipt deleted successfully!");
       fetchReceipts();
     } catch (err) {
@@ -111,8 +119,8 @@ export default function ReceiptsPage() {
         {/* </div> */}
 
         <ReceiptStats
-          totalCount={meta?.total || 0}
-          totalAmount={meta?.totalSpend || 0}
+          totalCount={summary.receiptsCount || 0}
+          totalAmount={summary.totalReceived || 0}
           dateFilter={dateFilter}
         />
 

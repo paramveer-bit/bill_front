@@ -233,6 +233,7 @@ export type Receipt = {
 /** Returns top-level categories with their children nested inside */
 export function buildCategoryTree(flat: Category[]): Category[] {
     const map = new Map<string, Category>();
+    if (!flat || flat.length === 0) return [];
     flat.forEach((c) => map.set(c.id, { ...c, children: [] }));
     const roots: Category[] = [];
     map.forEach((cat) => {
