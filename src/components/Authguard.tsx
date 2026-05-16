@@ -51,14 +51,15 @@ export default function AuthGuard({
     );
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#0c0c0f] flex items-center justify-center">
-        {/* <Loader2 className="w-6 h-6 text-amber-400 animate-spin" /> */}
-        <h1 className="text-white">No user</h1>
-      </div>
-    );
-  }
+  // if (!user) {
+  //   return (
+  //     // <div className="min-h-screen bg-[#0c0c0f] flex items-center justify-center">
+  //     //   {/* <Loader2 className="w-6 h-6 text-amber-400 animate-spin" /> */}
+  //     //   <h1 className="text-white">No user</h1>
+  //     // </div>
+  //     <></>
+  //   );
+  // }
 
   return <>{children}</>;
 }

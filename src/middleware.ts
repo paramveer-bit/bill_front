@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ["/login", "/signup", "/"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/", "/verify"];
 
 // Routes that require the user to NOT be logged in (redirect to dashboard if logged in)
-const AUTH_ROUTES = ["/login", "/signup"];
+const AUTH_ROUTES = ["/login", "/signup", "/verify"];
 
 // Routes that require email verification
 const VERIFIED_ROUTES: string[] = [
@@ -30,7 +30,7 @@ export function middleware(request: NextRequest) {
     const userInfoCookie = request.cookies.get("userInfo")?.value;
     // console.log("Middleware - isLoggedIn:", isLoggedIn, "Path:", pathname);
     // console.log("Middleware - userInfoCookie:", userInfoCookie);
-    // console.log(refreshToken)
+    console.log(refreshToken, isLoggedIn, pathname);
     let userInfo: { isVerified?: boolean; isCompleted?: boolean } | null = null;
     if (userInfoCookie) {
         try {
@@ -41,12 +41,12 @@ export function middleware(request: NextRequest) {
     }
 
     // 1. Logged-in users visiting auth pages → redirect to dashboard
-    if (isLoggedIn && AUTH_ROUTES.includes(pathname)) {
+    if (isLoggedIn && AUTH_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
     // 2. Non-logged-in users visiting protected pages → redirect to login
-    if (!isLoggedIn && !PUBLIC_ROUTES.includes(pathname)) {
+    if (!isLoggedIn && !PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
         const loginUrl = new URL("/login", request.url);
         loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
