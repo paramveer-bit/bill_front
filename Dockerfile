@@ -12,6 +12,10 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# --- ADDED FOR NEXT.JS BUILD VARS ---
+ARG NEXT_PUBLIC_BASEURL
+ENV NEXT_PUBLIC_BASEURL=$NEXT_PUBLIC_BASEURL
+
 # Build the Next.js application
 RUN npm run build
 

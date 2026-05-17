@@ -25,6 +25,10 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: paramveer01/bill_front:latest
+          # --- ADDED BUILD ARGS HERE ---
+          build-args: |
+            NEXT_PUBLIC_BASEURL=${{ secrets.NEXT_PUBLIC_BASEURL }}
+          # ------------------------------
 
       - name: Verify Pushed Image
         run: docker pull paramveer01/bill_front:latest
@@ -40,4 +44,4 @@ jobs:
             sudo docker pull paramveer01/bill_front:latest
             sudo docker stop bill_front || true
             sudo docker rm bill_front || true
-            sudo docker run -e NEXT_PUBLIC_BASEURL=${{ secrets.NEXT_PUBLIC_BASEURL}} -d --name bill_front -p 3000:3000 paramveer01/bill_front:latest
+            sudo docker run -d --name bill_front -p 3000:3000 paramveer01/bill_front:latest
