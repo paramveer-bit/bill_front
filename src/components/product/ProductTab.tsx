@@ -108,7 +108,10 @@ export function ProductsTab({
         </Button>
         <AddEditProduct
           isDialogOpen={isDialogOpen}
-          setIsDialogOpen={setIsDialogOpen}
+          setIsDialogOpen={(open) => {
+            setIsDialogOpen(open);
+            if (!open) setEditingProduct(null);
+          }}
           categoryTree={categories}
           editingProduct={editingProduct}
         />

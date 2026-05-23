@@ -23,6 +23,9 @@ export default function ProductItem({
   const [products, setCategoryProducts] = useState<Product[]>([]);
   const api = useApi();
   const fetchProductsByCategory = async (categoryId: string) => {
+    // setTimeout(() => {
+    //   setIsLoading(true);
+    // }, 300); // Add a slight delay to show the loading state
     try {
       const res = await api.get(`/products/category/${categoryId}`);
       setCategoryProducts(res.data.data.data);
@@ -34,7 +37,6 @@ export default function ProductItem({
   };
   useEffect(() => {
     setIsLoading(true);
-
     fetchProductsByCategory(categoryId);
   }, [categoryId, api]);
 
@@ -51,6 +53,16 @@ export default function ProductItem({
     return product.isStockItem && totalStock(product) < 10;
   };
 
+  if (isloading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 ml-4 md:ml-8 bg-white border border-slate-200 rounded-xl">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+        <p className="text-sm text-slate-500 font-medium">
+          Loading products...
+        </p>
+      </div>
+    );
+  }
   return (
     <>
       {products.map((product) => (

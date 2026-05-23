@@ -106,7 +106,7 @@ function AddEditProduct({
     } else {
       setForm(defaultForm);
     }
-  }, [!editingProduct]);
+  }, [editingProduct]);
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent className="max-w-lg">
