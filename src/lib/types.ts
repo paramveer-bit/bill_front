@@ -30,6 +30,7 @@ export type UnitConversion = {
     productId: string;
     unitName: string;       // "Case", "Ladi", "Pcs"
     conversionQty: number;  // how many base units = 1 of this unit
+    sellingPrice: number; // optional override for sell price when sold in this unit
 };
 
 export type Category = {

@@ -43,6 +43,7 @@ const buildPayload = (f: ProductFormState) => ({
   unitConversions: f.unitRows.map((u) => ({
     unitName: u.unitName,
     conversionQty: parseInt(u.conversionQty) || 1,
+    sellingPrice: parseFloat(u.sellingPrice) || 0,
   })),
 });
 
@@ -101,6 +102,7 @@ function AddEditProduct({
             .map((uc) => ({
               unitName: uc.unitName,
               conversionQty: uc.conversionQty.toString(),
+              sellingPrice: uc.sellingPrice.toString(),
             })) || [],
       });
     } else {

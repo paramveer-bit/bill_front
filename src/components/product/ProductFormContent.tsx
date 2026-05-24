@@ -29,7 +29,10 @@ export function ProductFormContent({
   const addUnitRow = () => {
     setForm({
       ...form,
-      unitRows: [...form.unitRows, { unitName: "", conversionQty: "" }],
+      unitRows: [
+        ...form.unitRows,
+        { unitName: "", conversionQty: "", sellingPrice: "" },
+      ],
     });
   };
 
@@ -156,6 +159,19 @@ export function ProductFormContent({
                 value={row.conversionQty}
                 onChange={(e) =>
                   updateUnitRow(index, "conversionQty", e.target.value)
+                }
+              />
+            </div>
+            <div className="w-24 space-y-1">
+              <Label className="text-[10px] uppercase text-slate-400 font-bold">
+                Selling Price (₹)
+              </Label>
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={row.sellingPrice}
+                onChange={(e) =>
+                  updateUnitRow(index, "sellingPrice", e.target.value)
                 }
               />
             </div>

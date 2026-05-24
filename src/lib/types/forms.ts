@@ -1,5 +1,5 @@
 
-export type UnitRow = { unitName: string; conversionQty: string };
+export type UnitRow = { unitName: string; conversionQty: string; sellingPrice: string };
 export type ProductFormState = {
     sku: string;
     name: string;
