@@ -21,6 +21,7 @@ interface ProductFormContentProps {
   categoryTree: Category[];
 }
 
+//
 export function ProductFormContent({
   form,
   setForm,
