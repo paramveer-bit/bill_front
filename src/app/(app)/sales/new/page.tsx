@@ -13,8 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, ArrowLeft, Loader2 } from "lucide-react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
 
 import { CustomerCombobox } from "@/components/sales/new/CustomerCombobox";
@@ -213,6 +211,7 @@ export default function NewSalePage() {
                         onRemove={(i: any) =>
                           setRows((prev) => prev.filter((_, idx) => idx !== i))
                         }
+                        customerId={customerId}
                       />
                     ))}
                   </TableBody>

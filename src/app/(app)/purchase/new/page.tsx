@@ -13,9 +13,6 @@ import {
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Plus, ArrowLeft, Loader2, PackageOpen } from "lucide-react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import axios from "axios";
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
 import { useKeyPress } from "@/hooks/handel_key_press";
 // Refactored Components

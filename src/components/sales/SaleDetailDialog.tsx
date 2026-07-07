@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { fmt, fmtDate } from "@/lib/helpers/functions";
 import { SaleDetail } from "@/lib/types";
 import { showErrorToast } from "@/lib/helpers/toast";
+import { useApi } from "@/hooks/useApi";
 
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 
@@ -39,14 +40,14 @@ export function SaleDetailDialog({
 }: SaleDetailDialogProps) {
   const [sale, setSale] = useState<SaleDetail | null>(null);
   const [loading, setLoading] = useState(false);
-
+  const api = useApi();
   useEffect(() => {
     if (!open || !saleId) {
       setSale(null);
       return;
     }
     setLoading(true);
-    axios
+    api
       .get(`${BASE}/sales/${saleId}`)
       .then((r) => setSale(r.data.data.sale))
       .catch(() => showErrorToast("Failed to load invoice details"))

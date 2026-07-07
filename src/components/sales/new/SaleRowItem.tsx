@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
 import { Loader2, Trash2, ChevronsUpDown, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,6 +61,7 @@ export function SaleRowItem({
   focusOnMount,
   onChange,
   onRemove,
+  customerId,
 }: {
   row: SaleRow;
   index: number;
@@ -70,6 +70,7 @@ export function SaleRowItem({
   focusOnMount: boolean;
   onChange: (index: number, updated: SaleRow) => void;
   onRemove: (index: number) => void;
+  customerId: string;
 }) {
   const { product } = row;
   const conversions = product ? sortedConversions(product.unitConversions) : [];
@@ -98,7 +99,7 @@ export function SaleRowItem({
     return () => clearTimeout(t);
   }, [query]);
 
-  const handleProductChange = async (p: Product) => {
+  const handleProductChange = async (p: Product, prevPurchase: any) => {
     // Check if the product is already selected in another row
     const isDuplicate = rows.some(
       (r, i) => r.productId === p.id && i !== index,
@@ -112,8 +113,7 @@ export function SaleRowItem({
     const convs = sortedConversions(p.unitConversions);
     const defaultUnit = convs[0]?.unitName ?? p.baseUnit;
     const defaultConvQty = getConvQty(defaultUnit, convs);
-
-    const update: SaleRow = {
+    let update: SaleRow = {
       ...row,
       productId: p.id,
       product: p,
@@ -125,7 +125,21 @@ export function SaleRowItem({
         ? (p.currentSellPrice * defaultConvQty).toFixed(2)
         : "",
     };
-
+    if (prevPurchase) {
+      update = {
+        ...row,
+        productId: prevPurchase.product.id,
+        product: prevPurchase.product,
+        selectedUnit: prevPurchase.unitname,
+        qtyInput: prevPurchase.unitQty,
+        qtyBase: toBasePcs(prevPurchase.unitQty, prevPurchase.unitname, convs),
+        loadingStock: true,
+        sellPrice:
+          prevPurchase.unitSellPrice *
+            getConvQty(prevPurchase.unitname, convs) +
+          "",
+      };
+    }
     onChange(index, update);
     setProductOpen(false);
 
@@ -136,6 +150,17 @@ export function SaleRowItem({
       onChange(index, { ...update, stockBase: stock, loadingStock: false });
     } catch {
       onChange(index, { ...update, loadingStock: false });
+    }
+  };
+
+  const getProductDetailsAccordingToCustomer = async (product: Product) => {
+    try {
+      const res = await api.get(
+        `/sales/search-products?customerId=${customerId}&productId=${product.id}`,
+      );
+      handleProductChange(product, res.data.data);
+    } catch (error) {
+      handleProductChange(product, null);
     }
   };
 
@@ -187,7 +212,6 @@ export function SaleRowItem({
             <PopoverContent className="w-[260px] p-0" align="start">
               <Command shouldFilter={false}>
                 {" "}
-                //
                 <CommandInput
                   placeholder="Search..."
                   value={query}
@@ -202,9 +226,10 @@ export function SaleRowItem({
                     </div>
                   )}
                   {results.map((p) => (
+                    //
                     <CommandItem
                       key={p.id}
-                      onSelect={() => handleProductChange(p)}
+                      onSelect={() => getProductDetailsAccordingToCustomer(p)}
                     >
                       <div className="flex flex-col min-w-0">
                         <span className="truncate">{p.name}</span>
