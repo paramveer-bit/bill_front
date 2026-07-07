@@ -93,6 +93,8 @@ export type PurchaseBatch = {
     unitCost: number;
     sellingPrice: number | null;
     mrp: number | null;
+    purchasedUnit: string;
+    conversionQty: number;
 };
 
 export type PurchaseDetail = {

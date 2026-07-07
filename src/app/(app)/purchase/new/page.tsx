@@ -17,7 +17,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import axios from "axios";
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
-
+import { useKeyPress } from "@/hooks/handel_key_press";
 // Refactored Components
 import { PurchaseInfoCard } from "@/components/purchase/new/PurchaseInfoCard";
 import { BatchRowItem } from "@/components/purchase/new/BatchRowItem";
@@ -60,6 +60,10 @@ export default function NewPurchasePage() {
   const [batches, setBatches] = useState([emptyBatch()]);
   const [newestIndex, setNewestIndex] = useState<number | null>(null);
   const api = useApi();
+  useKeyPress("i", "ctrl", () => {
+    if (document.activeElement?.tagName.toLowerCase() === "input") return;
+    handleAddBatch();
+  });
   useEffect(() => {
     const load = async () => {
       try {
@@ -125,6 +129,10 @@ export default function NewPurchasePage() {
             unitCost: toBasePrice(b.unitCost, b.selectedUnit, convs),
             sellingPrice: toBasePrice(b.sellingPrice, b.selectedUnit, convs),
             mrp: toBasePrice(b.mrp, b.selectedUnit, convs),
+            purchasedUnit: b.selectedUnit,
+            conversionQty:
+              convs.find((c: any) => c.unitName === b.selectedUnit)
+                ?.conversionQty ?? 1,
           };
         }),
       };
@@ -217,6 +225,7 @@ export default function NewPurchasePage() {
                           if (i === newestIndex) setNewestIndex(null);
                         }}
                         onRemove={handleRemoveBatch}
+                        sellerId={formData.supplierId}
                       />
                     ))}
                   </TableBody>

@@ -38,6 +38,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import axios, { AxiosError } from "axios";
 import { showErrorToast } from "@/lib/helpers/toast";
+import { useApi } from "@/hooks/useApi";
 
 // Centralized Hooks, Config, and Shared UI Components
 import { useDateFilters } from "@/hooks/use-date-filters";
@@ -51,7 +52,6 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import Header from "@/components/Header";
 const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const PAGE_SIZE = 20;
-import { useApi } from "@/hooks/useApi";
 export default function PurchasePage() {
   const router = useRouter();
   const api = useApi();
@@ -145,7 +145,7 @@ export default function PurchasePage() {
     setViewingPurchase(null);
     setDetailLoading(true);
     try {
-      const res = await axios.get(`${BASE}/purchases/${id}`);
+      const res = await api.get(`${BASE}/purchases/${id}`);
       setViewingPurchase(res.data.data);
     } catch (err) {
       showErrorToast("Failed to load purchase details");
@@ -160,9 +160,11 @@ export default function PurchasePage() {
     if (!deletingPurchase) return;
     try {
       setDeletingId(deletingPurchase.id);
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      // await new Promise((resolve) => setTimeout(resolve, 10000));
 
-      // await axios.delete(`${BASE}/purchases/${deletingPurchase.id}`);
+      await api.delete(`${BASE}/purchases/${deletingPurchase.id}`);
+      setDeletingId(null);
+      setDeletingPurchase(null);
       fetchPurchases();
     } catch (err) {
       const error = err as AxiosError<any>;

@@ -82,6 +82,7 @@ export function BatchRowItem({
   focusOnMount,
   onChange,
   onRemove,
+  sellerId,
 }: any) {
   const [productOpen, setProductOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -127,7 +128,7 @@ export function BatchRowItem({
     }
   }, [focusOnMount]);
 
-  const handleProductChange = (p: Product) => {
+  const handleProductChange = async (p: Product) => {
     const isDuplicate = batches.some(
       (b: any, i: number) => b.productId === p.id && i !== index,
     );
@@ -142,6 +143,49 @@ export function BatchRowItem({
     const defaultUnit = convs[0]?.unitName ?? p.baseUnit;
     const defaultConvQty = getConvQty(defaultUnit, convs);
 
+    try {
+      const productFromLastPurchase = await api.get(
+        `purchases/search-products?sellerId=${sellerId}&productId=${p.id}`,
+      );
+      const lastPurchase = productFromLastPurchase.data.data;
+      // console.log("Last purchase data for product:", lastPurchase);
+      onChange(index, {
+        ...batch,
+        productId: p.id,
+        product: p, // Store the product object in the row state
+        selectedUnit: lastPurchase.purchasedUnit,
+        qtyInput: lastPurchase.qtyReceived
+          ? (
+              Number(lastPurchase.qtyReceived) /
+              getConvQty(lastPurchase.purchasedUnit, convs)
+            ).toString()
+          : "",
+        qtyReceivedBase: lastPurchase.qtyReceived || 0,
+        unitCost:
+          (
+            Number(lastPurchase.unitCost) *
+            getConvQty(lastPurchase.purchasedUnit, convs)
+          ).toFixed(2) || "",
+        sellingPrice:
+          (
+            Number(lastPurchase.sellingPrice) *
+            getConvQty(lastPurchase.purchasedUnit, convs)
+          ).toString() || "",
+        mrp:
+          (
+            Number(lastPurchase.mrp) *
+            getConvQty(lastPurchase.purchasedUnit, convs)
+          ).toFixed(2) || "",
+      });
+      // console.log(
+      //   lastPurchase.qtyReceivedBase /
+      //     getConvQty(lastPurchase.purchasedUnit, convs),
+      // );
+      console.log("Updated batch with last purchase data:", batch);
+      setProductOpen(false);
+      return; // Exit early if we successfully fetched last purchase data
+    } catch (error) {}
+
     onChange(index, {
       ...batch,
       productId: p.id,
@@ -155,6 +199,7 @@ export function BatchRowItem({
         : "",
       mrp: "",
     });
+    console.log("Updated batch with new product data:", batch);
     setProductOpen(false);
   };
 

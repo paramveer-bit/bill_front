@@ -53,6 +53,8 @@ type PurchaseBatch = {
   unitCost: number;
   sellingPrice: number | null;
   mrp: number | null;
+  purchasedUnit: string;
+  conversionQty: number;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -161,7 +163,11 @@ function View({
                   <TableHeader>
                     <TableRow className="bg-muted/40">
                       <TableHead>Product</TableHead>
-                      <TableHead className="text-right">Received</TableHead>
+                      <TableHead className="text-right">Received Qty</TableHead>
+                      <TableHead className="text-right">
+                        Received Unit
+                      </TableHead>
+
                       <TableHead className="text-right">Cost</TableHead>
                       <TableHead className="text-right">Sell</TableHead>
                       <TableHead className="text-right">MRP</TableHead>
@@ -202,7 +208,7 @@ function View({
                           <TableCell className="text-right">
                             <div className="flex flex-col items-end gap-0.5">
                               <span className="tabular-nums text-sm font-medium">
-                                {batch.qtyReceived}
+                                {batch.qtyReceived / batch.conversionQty}
                               </span>
                               {stockSold > 0 ? (
                                 <span
@@ -222,6 +228,9 @@ function View({
                                 </span>
                               )}
                             </div>
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums text-sm">
+                            {batch.purchasedUnit}
                           </TableCell>
                           <TableCell className="text-right tabular-nums text-sm">
                             {fmt(batch.unitCost)}

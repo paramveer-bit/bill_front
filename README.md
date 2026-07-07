@@ -50,3 +50,6 @@ authcontext.ts
 useApp.ts
 authguard.tsx
 latour.tsx
+
+1. shortcut key to add new product in puracse and sale page
+2. Find product from last puracse alse for mrp and rate of the seller or buyer

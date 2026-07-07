@@ -36,7 +36,7 @@ function Add_new_customer({
     gstNumber: "",
     address: "",
     town: "",
-    balance: 0,
+    openingBalance: 0,
   });
 
   const api = useApi();
@@ -48,7 +48,7 @@ function Add_new_customer({
       gstNumber: "",
       address: "",
       town: "",
-      balance: 0,
+      openingBalance: 0,
     });
   };
 
@@ -62,7 +62,7 @@ function Add_new_customer({
         gstNumber: customerToEdit.gstNumber,
         address: customerToEdit.address,
         town: customerToEdit.town,
-        balance: customerToEdit.balance,
+        openingBalance: customerToEdit.balance,
       });
     } else {
       resetForm();
@@ -73,12 +73,16 @@ function Add_new_customer({
     try {
       if (customerToEdit) {
         // UPDATE LOGIC
-        const res = await api.put(`/customers/${customerToEdit.id}`, formData);
+        const res = await api.put(`/customers/${customerToEdit.id}`, {
+          ...formData,
+        });
         const updated = res.data.data;
         setCustomers(customers.map((c) => (c.id === updated.id ? updated : c)));
       } else {
         // CREATE LOGIC
-        const res = await api.post(`/customers`, formData);
+        const res = await api.post(`/customers`, {
+          ...formData,
+        });
         setCustomers([...customers, res.data.data]);
       }
       setIsDialogOpen(false);
@@ -147,14 +151,17 @@ function Add_new_customer({
           </div>
           {!customerToEdit && (
             <div className="space-y-2 col-span-2">
-              <Label htmlFor="balance">Opening Balance</Label>
+              <Label htmlFor="openingBalance">Opening Balance</Label>
               <Input
-                id="balance"
+                id="openingBalance"
                 type="number"
                 placeholder="0.00"
-                value={formData.balance}
+                value={formData.openingBalance}
                 onChange={(e) =>
-                  setFormData({ ...formData, balance: Number(e.target.value) })
+                  setFormData({
+                    ...formData,
+                    openingBalance: Number(e.target.value),
+                  })
                 }
               />
               <p className="text-xs text-muted-foreground">
