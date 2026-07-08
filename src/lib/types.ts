@@ -113,6 +113,7 @@ export type PurchaseDetail = {
     totalAmount: number;
     batches: PurchaseBatch[];
     coinAdjustment: number
+
 };
 
 // -------------------------------------------For Sale ----------------------------------------------
