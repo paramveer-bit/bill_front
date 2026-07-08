@@ -56,6 +56,7 @@ export default function NewPurchasePage() {
   });
   const [batches, setBatches] = useState([emptyBatch()]);
   const [newestIndex, setNewestIndex] = useState<number | null>(null);
+  const [coinAdjustment, setCoinAdjustment] = useState("");
   const api = useApi();
   useKeyPress("i", "ctrl", () => {
     if (document.activeElement?.tagName.toLowerCase() === "input") return;
@@ -91,11 +92,12 @@ export default function NewPurchasePage() {
   const handleRemoveBatch = (index: number) =>
     setBatches((prev) => prev.filter((_, i) => i !== index));
 
-  const totalAmount = batches.reduce(
-    (sum, b) =>
-      sum + (parseFloat(b.qtyInput) || 0) * (parseFloat(b.unitCost) || 0),
-    0,
-  );
+  const totalAmount =
+    batches.reduce(
+      (sum, b) =>
+        sum + (parseFloat(b.qtyInput) || 0) * (parseFloat(b.unitCost) || 0),
+      0,
+    ) + (parseFloat(coinAdjustment) || 0);
 
   const totalItems = batches.filter(
     (b) => b.productId && b.qtyReceivedBase > 0,
@@ -235,6 +237,23 @@ export default function NewPurchasePage() {
                   {totalItems > 0 ? `${totalItems} items ready` : ""}
                 </p>
                 <div className="text-right">
+                  <div className="flex items-center justify-end gap-2 mb-2">
+                    <label
+                      htmlFor="coinAdjustment"
+                      className="text-xs text-muted-foreground uppercase"
+                    >
+                      Coin Adjustment
+                    </label>
+                    <input
+                      id="coinAdjustment"
+                      type="number"
+                      step="0.01"
+                      value={coinAdjustment}
+                      onChange={(e) => setCoinAdjustment(e.target.value)}
+                      className="w-24 rounded-md border border-input bg-background px-2 py-1 text-sm text-right"
+                      placeholder="0.00"
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground uppercase mb-1">
                     Total Amount
                   </p>
