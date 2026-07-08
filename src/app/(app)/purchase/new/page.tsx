@@ -119,6 +119,7 @@ export default function NewPurchasePage() {
         invoiceNo: formData.invoiceNo.trim() || undefined,
         purchaseDate: new Date(formData.purchaseDate).toISOString(),
         totalAmount: totalAmount,
+        coinAdjustment: parseFloat(coinAdjustment) || 0,
         batches: batches.map((b) => {
           const convs = b.product?.unitConversions;
           return {

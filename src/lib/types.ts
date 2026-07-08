@@ -112,6 +112,7 @@ export type PurchaseDetail = {
     purchaseDate: string;
     totalAmount: number;
     batches: PurchaseBatch[];
+    coinAdjustment: number
 };
 
 // -------------------------------------------For Sale ----------------------------------------------

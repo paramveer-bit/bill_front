@@ -43,6 +43,7 @@ type PurchaseDetail = {
   purchaseDate: string;
   totalAmount: number;
   batches: PurchaseBatch[];
+  coinAdjustment: number;
 };
 type PurchaseBatch = {
   id: string;
@@ -267,6 +268,11 @@ function View({
                 {viewingPurchase.batches.length !== 1 ? "s" : ""}
               </p>
               <div className="text-right">
+                {!!viewingPurchase.coinAdjustment && (
+                  <p className="text-xs text-muted-foreground mb-1 tabular-nums">
+                    Coin Adjustment: {fmt(viewingPurchase.coinAdjustment)}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">
                   Total Amount
                 </p>
