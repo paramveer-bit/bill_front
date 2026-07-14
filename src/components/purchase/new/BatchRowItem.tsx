@@ -44,6 +44,11 @@ const getConvQty = (unit: string, convs: UnitConversion[]) => {
   return found ? found.conversionQty : 1;
 };
 
+const getConvSellingRate = (unit: string, convs: UnitConversion[]) => {
+  const found = convs.find((c) => c.unitName === unit);
+  return found ? found.sellingPrice : 1;
+};
+
 const toBasePcs = (qty: string, unit: string, convs: UnitConversion[]) =>
   (parseFloat(qty) || 0) * getConvQty(unit, convs);
 
@@ -162,15 +167,15 @@ export function BatchRowItem({
           : "",
         qtyReceivedBase: lastPurchase.qtyReceived || 0,
         unitCost:
-          (
-            Number(lastPurchase.unitCost) *
-            getConvQty(lastPurchase.purchasedUnit, convs)
-          ).toFixed(2) || "",
+          lastPurchase.purchaseUnitCost == 0
+            ? (
+                Number(lastPurchase.unitCost) *
+                getConvQty(lastPurchase.purchasedUnit, convs)
+              ).toFixed(2) || ""
+            : lastPurchase.purchaseUnitCost,
         sellingPrice:
-          (
-            Number(lastPurchase.sellingPrice) *
-            getConvQty(lastPurchase.purchasedUnit, convs)
-          ).toString() || "",
+          getConvSellingRate(lastPurchase.purchasedUnit, convs).toString() ||
+          "",
         mrp:
           (
             Number(lastPurchase.mrp) *

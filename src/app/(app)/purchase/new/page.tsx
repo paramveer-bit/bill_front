@@ -53,6 +53,7 @@ export default function NewPurchasePage() {
     supplierId: "",
     invoiceNo: "",
     purchaseDate: new Date().toISOString().split("T")[0],
+    receivedAt: new Date().toISOString().split("T")[0],
   });
   const [batches, setBatches] = useState([emptyBatch()]);
   const [newestIndex, setNewestIndex] = useState<number | null>(null);
@@ -106,6 +107,7 @@ export default function NewPurchasePage() {
   const isValid =
     !!formData.supplierId &&
     !!formData.purchaseDate &&
+    !!formData.receivedAt &&
     batches.every(
       (b) => b.productId && b.qtyReceivedBase > 0 && parseFloat(b.unitCost) > 0,
     );
@@ -118,6 +120,7 @@ export default function NewPurchasePage() {
         supplierId: formData.supplierId,
         invoiceNo: formData.invoiceNo.trim() || undefined,
         purchaseDate: new Date(formData.purchaseDate).toISOString(),
+        receivedAt: new Date(formData.receivedAt).toISOString(),
         totalAmount: totalAmount,
         coinAdjustment: parseFloat(coinAdjustment) || 0,
         batches: batches.map((b) => {
@@ -133,6 +136,7 @@ export default function NewPurchasePage() {
             conversionQty:
               convs.find((c: any) => c.unitName === b.selectedUnit)
                 ?.conversionQty ?? 1,
+            purchaseUnitCost: parseFloat(b.unitCost) || 0,
           };
         }),
       };

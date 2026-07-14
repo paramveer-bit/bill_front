@@ -16,7 +16,7 @@ export function PurchaseInfoCard({ formData, setFormData, suppliers }: any) {
         <CardTitle className="text-base">Purchase Information</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label>
               Supplier <span className="text-destructive">*</span>
@@ -67,6 +67,19 @@ export function PurchaseInfoCard({ formData, setFormData, suppliers }: any) {
               value={formData.purchaseDate}
               onChange={(e) =>
                 setFormData({ ...formData, purchaseDate: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>
+              Received Date <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              type="date"
+              value={formData.receivedAt}
+              onChange={(e) =>
+                setFormData({ ...formData, receivedAt: e.target.value })
               }
             />
           </div>
