@@ -34,7 +34,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --only=production
 
 # Copy built application from builder stage
-COPY --from=builder /app/next.config.js ./next.config.js || true
+COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 
