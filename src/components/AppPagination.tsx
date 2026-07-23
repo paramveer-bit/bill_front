@@ -11,7 +11,7 @@ import {
 interface PaginationProps {
   page: number;
   totalPages: number;
-  totalItems: number;
+  totalRecords: number;
   pageSize: number;
   onPageChange: (page: number) => void;
   tableLoading: boolean;
@@ -20,7 +20,7 @@ interface PaginationProps {
 export function AppPagination({
   page,
   totalPages,
-  totalItems,
+  totalRecords,
   pageSize,
   onPageChange,
   tableLoading,
@@ -59,11 +59,11 @@ export function AppPagination({
         </span>
         –
         <span className="font-medium text-foreground">
-          {Math.min(page * pageSize, totalItems)}
+          {Math.min(page * pageSize, totalRecords)}
         </span>{" "}
         of{" "}
         <span className="font-medium text-foreground">
-          {totalItems.toLocaleString("en-IN")}
+          {totalRecords.toLocaleString("en-IN")}
         </span>
       </p>
 

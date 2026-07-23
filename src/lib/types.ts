@@ -200,7 +200,7 @@ export type SortField = "saleDate" | "totalAmount" | "invoiceNo";
 export type Meta = {
     page: number;
     limit: number;
-    total: number;
+    totalRecords: number;
     totalPages: number;
     totalSpend: number;
     totalLineItems: number;
