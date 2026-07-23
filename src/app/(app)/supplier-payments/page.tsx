@@ -234,7 +234,7 @@ export default function SupplierPaymentsPage() {
               <AppPagination
                 page={page}
                 totalPages={meta.totalPages}
-                totalItems={meta.total}
+                totalRecords={meta.totalRecords}
                 pageSize={PAGE_SIZE}
                 onPageChange={(p) => setPage(p)}
                 tableLoading={tableLoading}

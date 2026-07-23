@@ -46,7 +46,7 @@ export default function CustomersPage() {
 
   // Pagination & Filter Metadata
   const [metadata, setMetadata] = useState({
-    totalItems: 0,
+    totalRecords: 0,
     totalPages: 0,
     pageSize: 10,
   });
@@ -87,7 +87,7 @@ export default function CustomersPage() {
       setCustomers(res.data.data.data || []);
       setMetadata((prev) => ({
         ...prev,
-        totalItems: res.data.data.meta.totalRecords || 0,
+        totalRecords: res.data.data.meta.totalRecords || 0,
         totalPages: res.data.data.meta.totalPages || 1,
       }));
     } catch (error) {
@@ -242,7 +242,7 @@ export default function CustomersPage() {
             <AppPagination
               page={currentPage}
               totalPages={metadata.totalPages}
-              totalItems={metadata.totalItems}
+              totalRecords={metadata.totalRecords}
               pageSize={metadata.pageSize}
               onPageChange={handlePageChange}
               tableLoading={loading}
