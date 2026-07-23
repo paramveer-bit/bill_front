@@ -14,29 +14,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Plus,
   Eye,
   Trash2,
   Loader2,
   PackageOpen,
   Building2,
-  Receipt,
-  TrendingUp,
   Hash,
 } from "lucide-react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { showErrorToast } from "@/lib/helpers/toast";
 import { useApi } from "@/hooks/useApi";
 
