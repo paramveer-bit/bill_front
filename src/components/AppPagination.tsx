@@ -64,7 +64,7 @@ export function AppPagination({
         of{" "}
         <span className="font-medium text-foreground">
           {totalRecords.toLocaleString("en-IN")}
-          hi
+          {/* hi */}
         </span>
       </p>
 

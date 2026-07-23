@@ -28,6 +28,7 @@ jobs:
           # --- ADDED BUILD ARGS HERE ---
           build-args: |
             NEXT_PUBLIC_BASEURL=${{ secrets.NEXT_PUBLIC_BASEURL }}
+          no-cache: true # Forces fresh static generation
           # ------------------------------
 
       - name: Verify Pushed Image
