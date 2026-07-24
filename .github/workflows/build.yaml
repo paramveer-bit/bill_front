@@ -45,4 +45,5 @@ jobs:
             sudo docker pull paramveer01/bill_front:latest
             sudo docker stop bill_front || true
             sudo docker rm bill_front || true
+            sudo docker system prune -af
             sudo docker run -d --name bill_front -p 3000:3000 paramveer01/bill_front:latest
