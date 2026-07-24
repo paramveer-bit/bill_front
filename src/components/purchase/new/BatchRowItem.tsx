@@ -199,9 +199,7 @@ export function BatchRowItem({
       qtyInput: "",
       qtyReceivedBase: 0,
       unitCost: "",
-      sellingPrice: p.currentSellPrice
-        ? (p.currentSellPrice * defaultConvQty).toFixed(2)
-        : "",
+      sellingPrice: getConvSellingRate(defaultUnit, convs).toString() || "",
       mrp: "",
     });
     console.log("Updated batch with new product data:", batch);
