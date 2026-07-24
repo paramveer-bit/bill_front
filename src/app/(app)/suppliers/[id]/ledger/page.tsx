@@ -3,8 +3,8 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
+import { useApi } from "@/hooks/useApi";
 
-import axios from "axios";
 import { Supplier } from "@/lib/types"; // CHANGE #1: Import Supplier type instead of Customer
 import { format } from "date-fns";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -37,6 +37,7 @@ export default function SupplierLedgerPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
+  const api = useApi();
 
   const fetchData = useCallback(
     async (isInitial = false) => {
@@ -48,8 +49,8 @@ export default function SupplierLedgerPage() {
 
       try {
         const [supRes, ledgerRes] = await Promise.all([
-          axios.get(`${BASE}/supplier/${id}`),
-          axios.get(`${BASE}/supplier/${id}/ledger`, {
+          api.get(`/suppliers/${id}`),
+          api.get(`/supplier-payments/${id}/ledger`, {
             params: {
               ...dateParams,
               page: String(page),
@@ -151,80 +152,80 @@ export default function SupplierLedgerPage() {
   };
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-slate-100/50 min-h-screen print:p-0 print:bg-white">
-          {/* --- Header Section --- */}
-          <SupplierHeader supplier={supplier} onExport={handleExport} />
+    // <SidebarProvider>
+    //   <AppSidebar />
+    //   <SidebarInset>
+    <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-slate-100/50 min-h-screen print:p-0 print:bg-white">
+      {/* --- Header Section --- */}
+      <SupplierHeader supplier={supplier} onExport={handleExport} />
 
-          {/* --- Key Metrics Cards --- */}
-          <LedgerMetrics
-            totalDebit={totalDebit}
-            totalCredit={totalCredit}
-            balance={supplier.balance}
+      {/* --- Key Metrics Cards --- */}
+      <LedgerMetrics
+        totalDebit={totalDebit}
+        totalCredit={totalCredit}
+        balance={supplier.balance}
+        startDate={dateParams?.startDate}
+        endDate={dateParams?.endDate}
+      />
+
+      {/* --- Filter Bar --- */}
+      <Card className="border-0 shadow-sm bg-white print:hidden">
+        <CardContent className="pt-6">
+          <DataTableFilters
+            searchTerm={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search description or type..."
+            dateFilter={dateFilter}
+            onDateFilterChange={(v: any) => {
+              setDateFilter(v);
+              setPage(1); // Reset to page 1 on filter change
+            }}
+            customRange={customRange}
+            onCustomRangeChange={setCustomRange}
+            onRefresh={() => fetchData()}
+          />
+        </CardContent>
+      </Card>
+
+      {/* --- Ledger Table --- */}
+      <Card className="border-0 shadow-sm overflow-hidden">
+        <div className="relative">
+          {tableLoading && (
+            <div className="absolute inset-0 bg-background/60 z-10 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+          <LedgerTable
+            entries={filteredEntries}
+            balanceBF={balanceBF}
             startDate={dateParams?.startDate}
-            endDate={dateParams?.endDate}
           />
 
-          {/* --- Filter Bar --- */}
-          <Card className="border-0 shadow-sm bg-white print:hidden">
-            <CardContent className="pt-6">
-              <DataTableFilters
-                searchTerm={searchQuery}
-                onSearchChange={setSearchQuery}
-                searchPlaceholder="Search description or type..."
-                dateFilter={dateFilter}
-                onDateFilterChange={(v: any) => {
-                  setDateFilter(v);
-                  setPage(1); // Reset to page 1 on filter change
-                }}
-                customRange={customRange}
-                onCustomRangeChange={setCustomRange}
-                onRefresh={() => fetchData()}
+          {/* Pagination added here */}
+          {meta && (
+            <div className="p-4 border-t bg-white">
+              <AppPagination
+                page={page}
+                totalPages={meta.totalPages}
+                totalRecords={meta.totalRecords}
+                pageSize={PAGE_SIZE}
+                onPageChange={(p) => setPage(p)}
+                tableLoading={tableLoading}
               />
-            </CardContent>
-          </Card>
-
-          {/* --- Ledger Table --- */}
-          <Card className="border-0 shadow-sm overflow-hidden">
-            <div className="relative">
-              {tableLoading && (
-                <div className="absolute inset-0 bg-background/60 z-10 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              )}
-              <LedgerTable
-                entries={filteredEntries}
-                balanceBF={balanceBF}
-                startDate={dateParams?.startDate}
-              />
-
-              {/* Pagination added here */}
-              {meta && (
-                <div className="p-4 border-t bg-white">
-                  <AppPagination
-                    page={page}
-                    totalPages={meta.totalPages}
-                    totalRecords={meta.totalRecords}
-                    pageSize={PAGE_SIZE}
-                    onPageChange={(p) => setPage(p)}
-                    tableLoading={tableLoading}
-                  />
-                </div>
-              )}
             </div>
-          </Card>
-
-          {/* --- Print Footer --- */}
-          <div className="hidden print:block text-xs text-center text-slate-600 mt-8 pt-4 border-t border-slate-300">
-            <p>This is a computer-generated ledger statement</p>
-            <p className="mt-2 text-slate-500">
-              Generated on {format(new Date(), "dd MMMM yyyy HH:mm")}
-            </p>
-          </div>
+          )}
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </Card>
+
+      {/* --- Print Footer --- */}
+      <div className="hidden print:block text-xs text-center text-slate-600 mt-8 pt-4 border-t border-slate-300">
+        <p>This is a computer-generated ledger statement</p>
+        <p className="mt-2 text-slate-500">
+          Generated on {format(new Date(), "dd MMMM yyyy HH:mm")}
+        </p>
+      </div>
+    </div>
+    //   </SidebarInset>
+    // </SidebarProvider>
   );
 }
