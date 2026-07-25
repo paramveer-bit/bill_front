@@ -28,7 +28,6 @@ const paymentModes = [
   "Cash",
   "Credit Card",
   "Debit Card",
-  "Insentive",
   "UPI",
   "Net Banking",
   "Cheque",

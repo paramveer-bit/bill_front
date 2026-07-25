@@ -33,6 +33,7 @@ const BASE = process.env.NEXT_PUBLIC_BASEURL;
 const paymentModes = [
   "Cash",
   "Bank Transfer",
+  "Insentive",
   "UPI",
   "Cheque",
   "Credit Note",
