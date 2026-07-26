@@ -45,6 +45,7 @@ export default function NewSalePage() {
   const [saleDate, setSaleDate] = useState(
     new Date().toISOString().split("T")[0],
   );
+  const [coinAdjustment, setCoinAdjustment] = useState("");
   const [rows, setRows] = useState<SaleRow[]>([emptyRow()]);
   const [newestIndex, setNewestIndex] = useState<number | null>(null);
   const api = useApi();
@@ -67,12 +68,12 @@ export default function NewSalePage() {
   const handleRowChange = (index: number, updated: SaleRow) =>
     setRows((prev) => prev.map((r, i) => (i === index ? updated : r)));
 
-  const totalAmount = rows.reduce(
-    (s, r) =>
-      s + (parseFloat(r.qtyInput) || 0) * (parseFloat(r.sellPrice) || 0),
-    0,
-  );
-
+  const totalAmount =
+    rows.reduce(
+      (s, r) =>
+        s + (parseFloat(r.qtyInput) || 0) * (parseFloat(r.sellPrice) || 0),
+      0,
+    ) + (parseFloat(coinAdjustment) || 0);
   const isValid =
     !!customerId &&
     rows.every(
@@ -86,13 +87,15 @@ export default function NewSalePage() {
       const payload = {
         customerId,
         saleDate: new Date(saleDate).toISOString(),
-        totalAmount: rows.reduce((s, r) => {
-          const conv =
-            r.product.unitConversions.find(
-              (c: any) => c.unitName === r.selectedUnit,
-            )?.conversionQty ?? 1;
-          return s + r.qtyBase * ((parseFloat(r.sellPrice) || 0) / conv);
-        }, 0),
+        totalAmount:
+          rows.reduce((s, r) => {
+            const conv =
+              r.product.unitConversions.find(
+                (c: any) => c.unitName === r.selectedUnit,
+              )?.conversionQty ?? 1;
+            return s + r.qtyBase * ((parseFloat(r.sellPrice) || 0) / conv);
+          }, 0) + (parseFloat(coinAdjustment) || 0),
+        coinAdjustment: parseFloat(coinAdjustment) || 0,
         lines: rows.map((r) => ({
           productId: r.productId,
           qty: r.qtyBase,
@@ -220,9 +223,31 @@ export default function NewSalePage() {
                   <p className="text-sm text-muted-foreground">
                     {rows.length} rows
                   </p>
-                  <p className="text-2xl font-bold">
-                    ₹{totalAmount.toLocaleString("en-IN")}
-                  </p>
+                  <div className="text-right">
+                    <div className="flex items-center justify-end gap-2 mb-2">
+                      <label
+                        htmlFor="coinAdjustment"
+                        className="text-xs text-muted-foreground uppercase"
+                      >
+                        Coin Adjustment
+                      </label>
+                      <input
+                        id="coinAdjustment"
+                        type="number"
+                        step="0.01"
+                        value={coinAdjustment}
+                        onChange={(e) => setCoinAdjustment(e.target.value)}
+                        className="w-24 rounded-md border border-input bg-background px-2 py-1 text-sm text-right"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">
+                      Total Amount
+                    </p>
+                    <p className="text-2xl font-bold">
+                      ₹{totalAmount.toLocaleString("en-IN")}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
