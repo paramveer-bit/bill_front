@@ -19,6 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useKeyPress } from "@/hooks/handel_key_press";
 import {
   Command,
   CommandInput,
@@ -62,6 +63,7 @@ export function SaleRowItem({
   onChange,
   onRemove,
   customerId,
+  handleAddRow,
 }: {
   row: SaleRow;
   index: number;
@@ -71,6 +73,7 @@ export function SaleRowItem({
   onChange: (index: number, updated: SaleRow) => void;
   onRemove: (index: number) => void;
   customerId: string;
+  handleAddRow: () => void;
 }) {
   const { product } = row;
   const conversions = product ? sortedConversions(product.unitConversions) : [];
@@ -98,6 +101,19 @@ export function SaleRowItem({
     }, 300);
     return () => clearTimeout(t);
   }, [query]);
+
+  // 2. Focus on Mount logic
+  useEffect(() => {
+    if (focusOnMount) {
+      const t = setTimeout(() => triggerRef.current?.click(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [focusOnMount]);
+
+  useKeyPress("i", "ctrl", () => {
+    if (document.activeElement?.tagName.toLowerCase() === "input") return;
+    handleAddRow();
+  });
 
   const handleProductChange = async (p: Product, prevPurchase: any) => {
     // Check if the product is already selected in another row

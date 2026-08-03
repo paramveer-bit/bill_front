@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, ArrowLeft, Loader2 } from "lucide-react";
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast";
-
+import { useKeyPress } from "@/hooks/handel_key_press";
 import { CustomerCombobox } from "@/components/sales/new/CustomerCombobox";
 import { SaleRowItem } from "@/components/sales/new/SaleRowItem";
 import { Customer, SaleDetail, SaleRow } from "@/lib/types";
@@ -79,6 +79,11 @@ export default function NewSalePage() {
     rows.every(
       (r) => r.productId && r.qtyBase > 0 && parseFloat(r.sellPrice) > 0,
     );
+
+  useKeyPress("i", "ctrl", () => {
+    if (document.activeElement?.tagName.toLowerCase() === "input") return;
+    handleAddRow();
+  });
 
   const handleSubmit = async (reRoute: boolean) => {
     if (!isValid) return;
@@ -215,6 +220,7 @@ export default function NewSalePage() {
                           setRows((prev) => prev.filter((_, idx) => idx !== i))
                         }
                         customerId={customerId}
+                        handleAddRow={handleAddRow}
                       />
                     ))}
                   </TableBody>
