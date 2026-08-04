@@ -52,7 +52,8 @@ export type Product = {
     category: Category
     categoryId: string | null;
     unitConversions: UnitConversion[];
-    totalStockPcs?: number;
+    currentStock?: number;
+    stockUnit?: string;
     // Relations - These must be added to stop the TS error
     purchaseBatches?: PurchaseBatch[];
 

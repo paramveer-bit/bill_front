@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { type Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/useApi";
+
 interface ProductItemProps {
   categoryId: string;
   onEdit: (p: Product) => void;
@@ -18,14 +19,15 @@ export default function ProductItem({
   onDelete,
   deletingId,
 }: ProductItemProps) {
-  // Aggregate stock from all batches
   const [isloading, setIsLoading] = useState(false);
   const [products, setCategoryProducts] = useState<Product[]>([]);
+  // Tracks which unit the user has chosen to view stock in, per product id
+  const [selectedUnits, setSelectedUnits] = useState<Record<string, string>>(
+    {},
+  );
   const api = useApi();
+
   const fetchProductsByCategory = async (categoryId: string) => {
-    // setTimeout(() => {
-    //   setIsLoading(true);
-    // }, 300); // Add a slight delay to show the loading state
     try {
       const res = await api.get(`/products/category/${categoryId}`);
       setCategoryProducts(res.data.data.data);
@@ -35,22 +37,62 @@ export default function ProductItem({
       setIsLoading(false);
     }
   };
+
   useEffect(() => {
     setIsLoading(true);
     fetchProductsByCategory(categoryId);
   }, [categoryId, api]);
 
+  // Aggregate stock from all batches (always in base units)
   const totalStock = (product: Product) => {
     return (
-      product.totalStockPcs ??
+      product.currentStock ??
       product.purchaseBatches?.reduce((sum, b) => sum + b.qtyRemaining, 0) ??
       0
     );
   };
 
-  // Highlight low stock (Critical threshold: 10)
+  // Highlight low stock (Critical threshold: 10, evaluated in base units)
   const isCritical = (product: Product) => {
     return product.isStockItem && totalStock(product) < 10;
+  };
+
+  // Every selectable unit for a product: its base unit plus any conversion units
+  const getUnitOptions = (product: Product) => {
+    const options = [{ unitName: product.baseUnit, conversionQty: 1 }];
+    product.unitConversions?.forEach((uc) => {
+      if (uc.unitName !== product.baseUnit) {
+        options.push({
+          unitName: uc.unitName,
+          conversionQty: uc.conversionQty,
+        });
+      }
+    });
+    return options;
+  };
+
+  const getSelectedUnit = (product: Product) => {
+    return selectedUnits[product.id] || product.baseUnit;
+  };
+
+  // Convert the base-unit stock total into whichever unit is currently selected
+  const displayStock = (product: Product) => {
+    const stockInBase = totalStock(product);
+    const unit = getSelectedUnit(product);
+    if (unit === product.baseUnit) return stockInBase;
+
+    const conv = product.unitConversions?.find((uc) => uc.unitName === unit);
+    if (!conv || !conv.conversionQty) return stockInBase;
+
+    const converted = stockInBase / conv.conversionQty;
+    // Show whole numbers cleanly, otherwise round to 2 decimal places
+    return Number.isInteger(converted)
+      ? converted
+      : Number(converted.toFixed(2));
+  };
+
+  const handleUnitChange = (productId: string, unit: string) => {
+    setSelectedUnits((prev) => ({ ...prev, [productId]: unit }));
   };
 
   if (isloading) {
@@ -63,10 +105,14 @@ export default function ProductItem({
       </div>
     );
   }
+
   return (
     <>
       {products.map((product) => (
-        <div className="group relative flex flex-col md:flex-row items-start md:items-center gap-4 p-2 ml-4 md:ml-8 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-primary/40 transition-all">
+        <div
+          key={product.id}
+          className="group relative flex flex-col md:flex-row items-start md:items-center gap-4 p-2 ml-4 md:ml-8 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
+        >
           {/* Identity & Conversions */}
           <div className="flex items-start gap-3 flex-1 min-w-[250px]">
             <div
@@ -104,21 +150,36 @@ export default function ProductItem({
             </div>
           </div>
 
-          {/* Inventory & Price Tracking */}
-          <div className="flex flex-col items-start md:items-center min-w-[100px] px-4 border-x border-slate-100">
-            <span className="text-[9px] uppercase font-bold text-slate-400">
-              Inventory
-            </span>
-            <div
-              className={cn(
-                "text-lg font-black",
-                isCritical(product) ? "text-red-600" : "text-slate-900",
-              )}
+          {/* Unit Selector + Inventory & Price Tracking */}
+          <div className="flex items-center gap-3 w-[200px] shrink-0 px-4 border-x border-slate-100">
+            <select
+              value={getSelectedUnit(product)}
+              onChange={(e) => handleUnitChange(product.id, e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-[76px] shrink-0 text-[10px] font-bold uppercase bg-slate-50 border border-slate-200 rounded px-1.5 py-1.5 text-slate-600 focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
             >
-              {totalStock(product)}{" "}
-              <span className="text-[10px] font-normal text-slate-500 uppercase">
-                {product.baseUnit}
+              {getUnitOptions(product).map((opt) => (
+                <option key={opt.unitName} value={opt.unitName}>
+                  {opt.unitName}
+                </option>
+              ))}
+            </select>
+
+            <div className="flex flex-col items-start w-[80px] shrink-0">
+              <span className="text-[9px] uppercase font-bold text-slate-400">
+                Inventory
               </span>
+              <div
+                className={cn(
+                  "text-lg font-black whitespace-nowrap",
+                  isCritical(product) ? "text-red-600" : "text-slate-900",
+                )}
+              >
+                {displayStock(product)}{" "}
+                <span className="text-[10px] font-normal text-slate-500 uppercase">
+                  {getSelectedUnit(product)}
+                </span>
+              </div>
             </div>
           </div>
 
