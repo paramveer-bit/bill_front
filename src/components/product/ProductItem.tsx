@@ -19,7 +19,7 @@ export function ProductItem({
 }: ProductItemProps) {
   // Aggregate stock from all batches
   const totalStock =
-    product.totalStockPcs ??
+    product.currentStock ??
     product.purchaseBatches?.reduce((sum, b) => sum + b.qtyRemaining, 0) ??
     0;
 
